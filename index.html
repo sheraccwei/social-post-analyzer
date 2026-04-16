@@ -17,12 +17,12 @@
   }
   .plat-fb      { --plat-color: #1877F2; }
   .plat-ig      { --plat-color: #E07020; }
-  .plat-story   { --plat-color: #E07020; }
   .plat-threads { --plat-color: #1c1917; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--ink); font-family: var(--sans); min-height: 100vh; line-height: 1.6; font-size: 15px; }
 
+  /* Header */
   .header { border-bottom: 1px solid var(--border-strong); padding: 18px 36px; display: flex; align-items: center; position: sticky; top: 0; background: rgba(240,237,232,0.92); backdrop-filter: blur(16px); z-index: 200; }
   .header-title { font-size: 13px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mid); font-family: var(--mono); }
   .header-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); margin: 0 14px; flex-shrink: 0; }
@@ -39,6 +39,7 @@
   .section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
   .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+  /* Upload */
   .upload-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
   .upload-card { border: 1px solid var(--border-strong); background: var(--surface); padding: 22px 20px; cursor: pointer; transition: all 0.18s; position: relative; }
   .upload-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(117,145,168,0.12); transform: translateY(-1px); }
@@ -50,6 +51,7 @@
   .upload-filename { font-family: var(--mono); font-size: 10px; color: var(--green); margin-top: 9px; word-break: break-all; }
   input[type="file"] { display: none; }
 
+  /* Mode */
   .mode-row { display: flex; gap: 6px; margin-bottom: 28px; align-items: center; flex-wrap: wrap; margin-top: 24px; }
   .mode-label { font-size: 12px; color: var(--ink-muted); margin-right: 6px; font-family: var(--mono); }
   .mode-btn { padding: 7px 20px; border: 1px solid var(--border-strong); background: transparent; color: var(--ink-muted); font-size: 12px; cursor: pointer; font-family: var(--mono); letter-spacing: 0.05em; transition: all 0.15s; }
@@ -60,12 +62,14 @@
   .run-btn:hover { background: var(--ink-mid); }
   .run-btn:disabled { background: var(--border-strong); color: var(--ink-muted); cursor: not-allowed; }
 
+  /* Results */
   #results { margin-top: 52px; }
   .result-block { margin-bottom: 56px; }
   .result-block-header { display: flex; align-items: baseline; gap: 14px; border-bottom: 2px solid var(--plat-color); padding-bottom: 10px; margin-bottom: 24px; }
   .result-block-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--plat-color); }
   .result-block-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-muted); }
 
+  /* Stats */
   .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin-bottom: 28px; background: var(--border); border: 1px solid var(--border); }
   .stat-card { background: var(--surface); padding: 18px 20px; }
   .stat-name { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px; }
@@ -74,6 +78,7 @@
   .stat-value.green { color: var(--green); }
   .stat-sub { font-size: 10px; color: var(--ink-muted); margin-top: 4px; font-family: var(--mono); }
 
+  /* Table */
   .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .data-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--border-strong); white-space: nowrap; background: var(--surface2); }
   .data-table td { padding: 11px 13px; border-bottom: 1px solid var(--border); background: var(--surface); vertical-align: middle; }
@@ -88,17 +93,16 @@
   .er-bar-bg { flex: 1; height: 2px; background: var(--border-strong); min-width: 40px; }
   .er-bar-fill { height: 100%; background: var(--plat-color); transition: width 0.5s ease; }
 
-  /* Classify */
+  /* Classify section */
   .classify-section { margin-top: 28px; }
   .classify-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
-  .classify-badge { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; padding: 3px 10px; background: var(--plat-color); color: #fff; text-transform: uppercase; }
-  .classify-title { font-size: 13px; color: var(--ink-mid); font-family: var(--mono); margin-left: 10px; }
+  .classify-title { font-size: 13px; color: var(--ink-mid); font-family: var(--mono); }
   .confirm-btn { padding: 8px 18px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border: 1px solid var(--plat-color); background: transparent; color: var(--plat-color); transition: all 0.15s; }
   .confirm-btn:hover { background: var(--plat-color); color: #fff; }
   .confirm-btn.done { background: var(--green); border-color: var(--green); color: #fff; }
 
   .post-classify-list { border: 1px solid var(--border); overflow: hidden; }
-  .post-classify-row { display: grid; grid-template-columns: 32px 1fr 210px; gap: 14px; align-items: start; padding: 11px 14px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .post-classify-row { display: grid; grid-template-columns: 32px 1fr 220px; gap: 14px; align-items: start; padding: 11px 14px; background: var(--surface); border-bottom: 1px solid var(--border); }
   .post-classify-row:last-child { border-bottom: none; }
   .post-classify-row:hover { background: var(--surface2); }
   .post-idx { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); padding-top: 4px; }
@@ -106,14 +110,13 @@
   .post-preview-text { font-size: 12px; color: var(--ink-mid); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .post-cat-select { width: 100%; padding: 7px 8px; border: 1px solid var(--border-strong); background: var(--surface); font-family: var(--sans); font-size: 12px; color: var(--ink); cursor: pointer; }
   .post-cat-select:focus { outline: 1px solid var(--plat-color); }
-  .post-cat-select.ai-set { border-color: var(--plat-color); background: rgba(117,145,168,0.05); }
-  .post-cat-select.user-set { border-color: var(--green); background: rgba(45,122,79,0.05); }
+  .post-cat-select.set { border-color: var(--green); background: rgba(45,122,79,0.04); }
 
-  /* Collapse toggle */
+  /* Collapse */
   .collapse-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 8px; user-select: none; }
-  .collapse-toggle .toggle-icon { font-family: var(--mono); font-size: 11px; color: var(--plat-color); transition: transform 0.2s; }
-  .collapse-toggle .toggle-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); }
-  .collapsible { overflow: hidden; transition: max-height 0.3s ease; max-height: 2000px; }
+  .toggle-icon { font-family: var(--mono); font-size: 11px; color: var(--plat-color); }
+  .toggle-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); }
+  .collapsible { overflow: hidden; transition: max-height 0.3s ease; max-height: 3000px; }
   .collapsible.collapsed { max-height: 0; }
 
   /* Top posts */
@@ -142,18 +145,17 @@
 
   .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
   .info-msg { font-size: 12px; color: var(--ink-muted); font-family: var(--mono); padding: 14px; background: var(--surface); border: 1px solid var(--border); }
-  .err-msg { font-size: 12px; color: var(--red); font-family: var(--mono); padding: 14px; background: rgba(192,57,43,0.04); border: 1px solid rgba(192,57,43,0.2); }
   .spinner { display: inline-block; width: 11px; height: 11px; border: 1.5px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border-strong); }
 
-  @media (max-width: 860px) {
+  @media (max-width: 760px) {
     .upload-grid { grid-template-columns: 1fr 1fr; }
     .stats-row { grid-template-columns: repeat(3, 1fr); }
     .post-classify-row { grid-template-columns: 28px 1fr; }
     .post-cat-select { grid-column: 2; }
   }
-  @media (max-width: 520px) { .upload-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 480px) { .upload-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -168,7 +170,7 @@
   <div class="intro">
     <div class="intro-eyebrow">Social Media Reporting Tool</div>
     <div class="intro-heading">Top Post <strong>Analysis</strong></div>
-    <div class="intro-desc">上傳 Sprinklr 匯出的 CSV。AI 自動將每篇貼文歸類至 9 個 Content Category，可手動調整後按 Confirm 更新統計表。分類結果會自動儲存，下次開啟不需重分。</div>
+    <div class="intro-desc">上傳 Sprinklr 匯出的 CSV，手動將每篇貼文歸類至 9 個 Content Category，按 Confirm 更新統計表。分類結果自動儲存，下次開啟不需重新選。</div>
   </div>
 
   <div class="section-label">Step 01 — Upload</div>
@@ -208,36 +210,34 @@
 </div>
 
 <script>
-// ─── Categories ──────────────────────────────────────────────
 const CATEGORIES = [
-  { id:1, name:'New Product Launch',        desc:'New product reveals, unboxings, launch announcements' },
-  { id:2, name:'Product Feature',           desc:'Feature highlights and tutorials for existing products' },
-  { id:3, name:'Promotion / Offer',         desc:'Discounts, limited-time offers, e-commerce campaigns' },
-  { id:4, name:'Garmin Run',                desc:'Content related to Garmin-owned running events' },
-  { id:5, name:'User Story / UGC',          desc:'Real user stories, community engagement, UGC reposts' },
-  { id:6, name:'Brand / Campaign',          desc:'Brand image, major marketing campaigns, sponsored events' },
-  { id:7, name:'Holiday / Seasonal',        desc:'Festive greetings and seasonal themed content' },
-  { id:8, name:'Collaboration / Partnership',desc:'KOL collaborations, co-branding, media partnerships' },
-  { id:9, name:'Custom',                    desc:'Other content not covered above' },
+  { id:1, name:'New Product Launch' },
+  { id:2, name:'Product Feature' },
+  { id:3, name:'Promotion / Offer' },
+  { id:4, name:'Garmin Run' },
+  { id:5, name:'User Story / UGC' },
+  { id:6, name:'Brand / Campaign' },
+  { id:7, name:'Holiday / Seasonal' },
+  { id:8, name:'Collaboration / Partnership' },
+  { id:9, name:'Custom' },
 ];
 const CAT_OPTIONS = CATEGORIES.map(c=>`<option value="${c.id}">${c.id}. ${c.name}</option>`).join('');
-const STORAGE_KEY = 'post-analyzer-cats-v2';
+const STORAGE_KEY = 'post-analyzer-cats-v3';
 
-// ─── State ───────────────────────────────────────────────────
 const csvData = { fb:null, ig:null, threads:null };
 let currentMode = 'mom';
-const platPostsMap = {};  // key -> posts[]
-let categoryMap = {};     // key -> { postKey: {id, source} }
-const catTblSort = {};    // tblId -> {col, dir}
+const platPostsMap = {};
+let categoryMap = {};
+const catTblSort = {};
 
 function loadSaved() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch { return {}; } }
 function saveCats()  { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(categoryMap)); } catch {} }
 
 function postKey(platKey, post, idx) {
-  return `${platKey}::${post.link||post.date||('i'+idx)}`;
+  return `${platKey}::${post.link || post.date || ('i'+idx)}`;
 }
 
-// ─── Upload ──────────────────────────────────────────────────
+// ── Upload ────────────────────────────────────────────────────
 function handleFile(key, input) {
   const file = input.files[0]; if(!file) return;
   const r = new FileReader();
@@ -249,27 +249,27 @@ function handleFile(key, input) {
       checkReady();
     } catch(err) { alert('CSV error: '+err.message); }
   };
-  r.readAsText(file,'UTF-8');
+  r.readAsText(file, 'UTF-8');
 }
 function checkReady() {
   document.getElementById('run-btn').disabled = !(csvData.fb||csvData.ig||csvData.threads);
 }
 function setMode(m) {
   currentMode = m;
-  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===m));
 }
 
-// ─── CSV ─────────────────────────────────────────────────────
+// ── CSV Parser ────────────────────────────────────────────────
 function parseCSV(text) {
   if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
-  const lines=[]; let cur='',inQ=false;
+  const lines=[]; let cur='', inQ=false;
   for(let i=0;i<text.length;i++){
     const c=text[i];
     if(c==='"'){inQ=!inQ;cur+=c;}
     else if(c==='\n'&&!inQ){lines.push(cur);cur='';}
     else cur+=c;
   }
-  if(cur.trim())lines.push(cur);
+  if(cur.trim()) lines.push(cur);
   const rows=lines.map(line=>{
     const cells=[];let cell='',q=false;
     for(let i=0;i<line.length;i++){
@@ -289,6 +289,7 @@ function parseCSV(text) {
   }).filter(r=>Object.values(r).some(v=>v));
 }
 
+// ── Data ─────────────────────────────────────────────────────
 function processData(rows) {
   return rows.map(r=>{
     const eng=parseInt((r['Engagements + Clicks (SUM)']||r['Engagements']||'0').replace(/,/g,''))||0;
@@ -297,7 +298,7 @@ function processData(rows) {
     let er=erRaw?(parseFloat(erRaw.replace('%',''))||0):0;
     if(er===0&&reach>0) er=(eng/reach)*100;
     return {
-      er,eng,reach,
+      er, eng, reach,
       campaign:(r['Campaign Name']||r['Campaign']||'Unknown').trim(),
       text:r['Outbound Post']||r['Post Text']||'',
       link:r['Permalink']||'',
@@ -311,65 +312,37 @@ function getAccountER(posts){
   return tr>0?(te/tr*100):0;
 }
 
-// ─── AI Classification ───────────────────────────────────────
-async function classifyPosts(platKey, posts) {
-  if(!categoryMap[platKey]) categoryMap[platKey]={};
-  const saved=categoryMap[platKey];
-  const toClassify=posts.map((p,i)=>({p,i,k:postKey(platKey,p,i)})).filter(({k})=>!saved[k]);
-  if(!toClassify.length) return;
-
-  // Batch in groups of 30 to stay within token limit
-  const BATCH=30;
-  for(let b=0;b<toClassify.length;b+=BATCH){
-    const batch=toClassify.slice(b,b+BATCH);
-    const catList=CATEGORIES.map(c=>`${c.id}. ${c.name} — ${c.desc}`).join('\n');
-    const postList=batch.map(({p},j)=>`[${j}] Campaign: ${p.campaign} | ${p.text.slice(0,120).replace(/\n/g,' ')}`).join('\n');
-    const prompt=`Classify each post into exactly one category (1-9). Reply ONLY with a JSON array of integers in same order, e.g. [2,6,1,...]. No text, no markdown.\n\nCategories:\n${catList}\n\nPosts:\n${postList}`;
-    try {
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:prompt}]})
-      });
-      const data=await resp.json();
-      if(data.error) throw new Error(data.error.message);
-      const raw=data.content.map(x=>x.text||'').join('').replace(/```[\s\S]*?```/g,'').trim();
-      let ids; try{ids=JSON.parse(raw);}catch{ids=[];}
-      batch.forEach(({k},j)=>{
-        const id=ids[j]; 
-        saved[k]={id:(id>=1&&id<=9)?id:9,source:'ai'};
-      });
-    } catch(e){
-      // fallback: mark as Custom
-      batch.forEach(({k})=>{ if(!saved[k]) saved[k]={id:9,source:'ai'}; });
-    }
-  }
-  saveCats();
-}
-
-// ─── Category stats ──────────────────────────────────────────
-function getCategoryStats(platKey,posts){
+// ── Category stats ────────────────────────────────────────────
+function getCategoryStats(platKey, posts){
   const map={};
   CATEGORIES.forEach(c=>{map[c.id]={id:c.id,name:c.name,count:0,totalEng:0,totalReach:0};});
   posts.forEach((p,i)=>{
     const k=postKey(platKey,p,i);
     const cd=(categoryMap[platKey]||{})[k];
-    const id=cd?cd.id:9;
-    map[id].count++;map[id].totalEng+=p.eng;map[id].totalReach+=p.reach;
+    const id=cd?cd.id:null;
+    if(id){map[id].count++;map[id].totalEng+=p.eng;map[id].totalReach+=p.reach;}
   });
-  return Object.values(map).map(d=>({...d,avgER:d.totalReach>0?(d.totalEng/d.totalReach*100):0}));
+  return Object.values(map).map(d=>({
+    ...d, avgER:d.totalReach>0?(d.totalEng/d.totalReach*100):0
+  }));
 }
 
-// ─── Sortable category table ──────────────────────────────────
-function renderCategoryTable(platKey,posts,tblId){
+// ── Sortable category table ───────────────────────────────────
+function renderCategoryTable(platKey, posts, tblId){
   if(!catTblSort[tblId]) catTblSort[tblId]={col:'count',dir:'desc'};
   const stats=getCategoryStats(platKey,posts).filter(d=>d.count>0);
-  return `<div id="ctbl-${tblId}" data-platkey="${platKey}">${buildCategoryTable(stats,tblId,posts.length)}</div>`;
+  const classified=posts.filter((_,i)=>(categoryMap[platKey]||{})[postKey(platKey,_,i)]).length;
+  return `<div id="ctbl-${tblId}" data-platkey="${platKey}" data-total="${posts.length}">
+    ${stats.length===0
+      ? `<div class="info-msg">아직 분류된 貼文이 없습니다. 아래에서 각 貼文의 Category를 선택하고 Confirm을 누르세요.<br><br>No posts classified yet. Select a category for each post below, then click Confirm.</div>`
+      : buildCategoryTable(stats,tblId,posts.length)}
+  </div>`;
 }
 
-function buildCategoryTable(stats,tblId,totalPosts){
+function buildCategoryTable(stats, tblId, totalPosts){
   const {col,dir}=catTblSort[tblId]||{col:'count',dir:'desc'};
   const sorted=[...stats].sort((a,b)=>{
-    const av=a[col]??0,bv=b[col]??0;
+    const av=a[col]??0, bv=b[col]??0;
     return dir==='desc'?bv-av:av-bv;
   });
   const maxER=Math.max(...sorted.map(s=>s.avgER),0.001);
@@ -383,7 +356,7 @@ function buildCategoryTable(stats,tblId,totalPosts){
       <th class="num sortable" onclick="sortCat('${tblId}','count','${col}','${dir}')">Posts ${arrow('count')}</th>
       <th class="num sortable" onclick="sortCat('${tblId}','pct','${col}','${dir}')">% of Total ${arrow('pct')}</th>
       <th class="num sortable" onclick="sortCat('${tblId}','avgER','${col}','${dir}')">Avg ER% ${arrow('avgER')}</th>
-      <th style="width:90px;">ER Bar</th>
+      <th style="width:90px">ER Bar</th>
     </tr></thead>
     <tbody>
       ${sorted.map((c,i)=>`<tr>
@@ -398,7 +371,7 @@ function buildCategoryTable(stats,tblId,totalPosts){
   </table>`;
 }
 
-function sortCat(tblId,col,prevCol,prevDir){
+function sortCat(tblId, col, prevCol, prevDir){
   const dir=(col===prevCol&&prevDir==='desc')?'asc':'desc';
   catTblSort[tblId]={col,dir};
   const wrap=document.getElementById('ctbl-'+tblId);
@@ -409,13 +382,13 @@ function sortCat(tblId,col,prevCol,prevDir){
   wrap.dataset.platkey=platKey;
 }
 
-// ─── Classify review list ─────────────────────────────────────
-function renderClassifyList(platKey,posts){
+// ── Post classify list ────────────────────────────────────────
+function renderClassifyList(platKey, posts){
   const saved=categoryMap[platKey]||{};
   const rows=posts.map((p,i)=>{
     const k=postKey(platKey,p,i);
     const cd=saved[k];
-    const cls=cd?(cd.source==='user'?'user-set':'ai-set'):'';
+    const cls=cd?'set':'';
     return `<div class="post-classify-row">
       <div class="post-idx">${i+1}</div>
       <div>
@@ -431,27 +404,26 @@ function renderClassifyList(platKey,posts){
   return `<div class="post-classify-list" id="clist-${platKey}">${rows}</div>`;
 }
 
-function applySelects(platKey,posts){
+function applySelects(platKey, posts){
   const saved=categoryMap[platKey]||{};
   const list=document.getElementById('clist-'+platKey);
   if(!list) return;
-  list.querySelectorAll('select').forEach((sel,i)=>{
-    const k=sel.dataset.k;
-    const cd=saved[k];
-    if(cd) sel.value=cd.id;
+  list.querySelectorAll('select').forEach(sel=>{
+    const cd=saved[sel.dataset.k];
+    if(cd){ sel.value=cd.id; sel.classList.add('set'); }
   });
 }
 
 function updateCat(sel){
-  const {platkey:platKey,k}=sel.dataset;
+  const {platkey, k}=sel.dataset;
   const id=parseInt(sel.value);
-  if(!categoryMap[platKey]) categoryMap[platKey]={};
+  if(!categoryMap[platkey]) categoryMap[platkey]={};
   if(id){
-    categoryMap[platKey][k]={id,source:'user'};
-    sel.className='post-cat-select user-set';
+    categoryMap[platkey][k]={id};
+    sel.classList.add('set');
   } else {
-    delete categoryMap[platKey][k];
-    sel.className='post-cat-select';
+    delete categoryMap[platkey][k];
+    sel.classList.remove('set');
   }
   saveCats();
 }
@@ -462,11 +434,18 @@ function confirmClassify(platKey){
   const wrap=document.getElementById('ctbl-'+tblId);
   if(wrap){
     const stats=getCategoryStats(platKey,posts).filter(d=>d.count>0);
-    wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length);
-    wrap.dataset.platkey=platKey;
+    if(stats.length===0){
+      wrap.innerHTML=`<div class="info-msg">No posts classified yet. Select a category for each post below, then click Confirm.</div>`;
+    } else {
+      wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length);
+      wrap.dataset.platkey=platKey;
+    }
   }
   const btn=document.getElementById('cfbtn-'+platKey);
-  if(btn){btn.textContent='✓ Table Updated';btn.classList.add('done');setTimeout(()=>{btn.textContent='Confirm & Update Table';btn.classList.remove('done');},2000);}
+  if(btn){
+    btn.textContent='✓ Updated';btn.classList.add('done');
+    setTimeout(()=>{btn.textContent='Confirm & Update Table';btn.classList.remove('done');},2000);
+  }
 }
 
 function toggleCollapse(id){
@@ -476,7 +455,7 @@ function toggleCollapse(id){
   if(icon) icon.textContent=el.classList.contains('collapsed')?'▶':'▼';
 }
 
-// ─── Top posts ────────────────────────────────────────────────
+// ── Top posts ─────────────────────────────────────────────────
 function renderTopPosts(posts){
   const sorted=[...posts].sort((a,b)=>b.eng-a.eng).slice(0,3);
   return `<div class="top-posts">${sorted.map((p,i)=>`
@@ -495,10 +474,10 @@ function renderTopPosts(posts){
     </div>`).join('')}</div>`;
 }
 
-// ─── Prompts ──────────────────────────────────────────────────
-function pct(n){return n.toFixed(2)+'%';}
+// ── Prompt ────────────────────────────────────────────────────
+function pct(n){ return n.toFixed(2)+'%'; }
 
-function buildPrompt(plat,posts,accountER,mode){
+function buildPrompt(plat, posts, accountER, mode){
   const top3=[...posts].sort((a,b)=>b.eng-a.eng).slice(0,3);
   return `You are a social media analyst. Answer the question in English. Be concise — 2–3 sentences max, suitable for a report slide.
 
@@ -511,13 +490,11 @@ ${top3.map((p,i)=>`${i+1}. [${p.campaign}] ER: ${pct(p.er)}, Eng: ${p.eng.toLoca
 Q. Looking at the top 3 posts, what drove their strong engagement?`;
 }
 
-function buildPromptStory(mode){return '';}// kept as stub, unused
-
-function makePromptBox(id,prompt,hint){
+function makePromptBox(id, prompt){
   return `<div class="prompt-section">
     <div class="prompt-section-header">
       <span class="prompt-badge">Prompt</span>
-      <span class="prompt-section-title">${hint||'Copy and paste into Claude / ChatGPT'}</span>
+      <span class="prompt-section-title">Copy and paste into Claude / ChatGPT</span>
     </div>
     <div class="prompt-box" id="pb-${id}">${prompt.replace(/</g,'&lt;')}</div>
     <button class="copy-prompt-btn" id="cpbtn-${id}" onclick="copyPrompt('${id}')">⎘ Copy Prompt</button>
@@ -531,62 +508,58 @@ function copyPrompt(id){
   });
 }
 
-function platClass(k){ return {fb:'plat-fb',ig:'plat-ig',story:'plat-story',threads:'plat-threads'}[k]||''; }
+function platClass(k){ return {fb:'plat-fb',ig:'plat-ig',threads:'plat-threads'}[k]||''; }
 
-// ─── Main ─────────────────────────────────────────────────────
-async function runAnalysis(){
+// ── Main ──────────────────────────────────────────────────────
+function runAnalysis(){
   const resultsEl=document.getElementById('results');
-  resultsEl.innerHTML='<div class="info-msg"><span class="spinner"></span>  Processing and classifying posts with AI...</div>';
+  resultsEl.innerHTML='<div class="info-msg"><span class="spinner"></span>  Processing...</div>';
 
   Object.assign(categoryMap, loadSaved());
 
   const platforms=[
-    csvData.fb      ?{key:'fb',     name:'Facebook', isStory:false}:null,
-    csvData.ig      ?{key:'ig',     name:'Instagram',isStory:false}:null,
-    csvData.threads ?{key:'threads',name:'Threads',  isStory:false}:null,
+    csvData.fb      ?{key:'fb',     name:'Facebook'}:null,
+    csvData.ig      ?{key:'ig',     name:'Instagram'}:null,
+    csvData.threads ?{key:'threads',name:'Threads'}:null,
   ].filter(Boolean);
 
-  if(!platforms.length){resultsEl.innerHTML='<div class="err-msg">Please upload at least one CSV file.</div>';return;}
+  if(!platforms.length){
+    resultsEl.innerHTML='<div class="info-msg">Please upload at least one CSV file.</div>';
+    return;
+  }
 
-  // Process posts
   platforms.forEach(plat=>{ platPostsMap[plat.key]=processData(csvData[plat.key]); });
-
-  // Classify all platforms in parallel
-  await Promise.all(platforms.map(plat=>classifyPosts(plat.key,platPostsMap[plat.key])));
 
   const modeLabel=currentMode==='mom'?'MOM':'YTM';
   let html='';
 
   for(const plat of platforms){
     const posts=platPostsMap[plat.key];
-    const pid=plat.key+'-prompt';
     const accountER=getAccountER(posts);
     const tblId='cat-'+plat.key;
-    const classifyListId='classify-'+plat.key;
+    const classifyListId='clist-collapse-'+plat.key;
+    const classified=posts.filter((_,i)=>(categoryMap[plat.key]||{})[postKey(plat.key,_,i)]).length;
 
     html+=`<div class="result-block ${platClass(plat.key)}">
       <div class="result-block-header">
         <div class="result-block-title">${plat.name}</div>
-        <div class="result-block-meta">${modeLabel} · ${posts.length} posts</div>
+        <div class="result-block-meta">${modeLabel} · ${posts.length} posts · ${classified} classified</div>
       </div>
 
       <div class="stats-row">
         <div class="stat-card"><div class="stat-name">Total Posts</div><div class="stat-value">${posts.length}</div></div>
         <div class="stat-card"><div class="stat-name">Account ER%</div><div class="stat-value plat-val">${pct(accountER)}</div></div>
-        <div class="stat-card"><div class="stat-name">Categories Used</div><div class="stat-value">${getCategoryStats(plat.key,posts).filter(d=>d.count>0).length}</div></div>
+        <div class="stat-card"><div class="stat-name">Classified</div><div class="stat-value">${classified}<span style="font-size:14px;color:var(--ink-muted)"> / ${posts.length}</span></div></div>
         <div class="stat-card"><div class="stat-name">Total Reach</div><div class="stat-value" style="font-size:20px">${posts.reduce((s,p)=>s+p.reach,0).toLocaleString()}</div></div>
         <div class="stat-card"><div class="stat-name">Top Post ER%</div><div class="stat-value green">${pct(Math.max(...posts.map(p=>p.er)))}</div></div>
       </div>
 
       <div class="section-label" style="margin-top:24px;">Content Category — Click headers to sort</div>
-      ${renderCategoryTable(plat.key,posts,tblId)}
+      ${renderCategoryTable(plat.key, posts, tblId)}
 
       <div class="classify-section">
         <div class="classify-header">
-          <div style="display:flex;align-items:center;">
-            <span class="classify-badge">AI Classified</span>
-            <span class="classify-title">Review & adjust — then confirm to update table</span>
-          </div>
+          <span class="classify-title">Select a category for each post, then confirm</span>
           <button class="confirm-btn" id="cfbtn-${plat.key}" onclick="confirmClassify('${plat.key}')">Confirm & Update Table</button>
         </div>
         <div class="collapse-toggle" onclick="toggleCollapse('${classifyListId}')">
@@ -594,21 +567,22 @@ async function runAnalysis(){
           <span class="toggle-label">Post list (${posts.length} posts)</span>
         </div>
         <div class="collapsible" id="${classifyListId}">
-          ${renderClassifyList(plat.key,posts)}
+          ${renderClassifyList(plat.key, posts)}
         </div>
       </div>
 
       <div class="section-label" style="margin-top:28px;">Top 3 Posts by Engagement</div>
       ${renderTopPosts(posts)}
 
-      ${makePromptBox(pid,buildPrompt(plat,posts,accountER,currentMode))}
-    </div><hr class="divider">`;
+      ${makePromptBox(plat.key+'-prompt', buildPrompt(plat, posts, accountER, currentMode))}
+    </div>
+    <hr class="divider">`;
   }
 
   resultsEl.innerHTML=html;
 
-  // Apply saved dropdown values after DOM render
-  platforms.forEach(plat=>applySelects(plat.key,platPostsMap[plat.key]));
+  // Restore saved selections
+  platforms.forEach(plat=>applySelects(plat.key, platPostsMap[plat.key]));
 }
 </script>
 </body>
