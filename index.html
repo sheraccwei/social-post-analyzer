@@ -143,7 +143,11 @@
   .copy-prompt-btn:hover { opacity: 0.85; }
   .copy-prompt-btn.copied { background: var(--green); }
 
-  .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+/* Lang switcher */
+  .lang-switcher { margin-left: auto; display: flex; gap: 2px; }
+  .lang-btn { padding: 4px 10px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; border: 1px solid var(--border-strong); background: transparent; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; }
+  .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .lang-btn.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
   .info-msg { font-size: 12px; color: var(--ink-muted); font-family: var(--mono); padding: 14px; background: var(--surface); border: 1px solid var(--border); }
   .spinner { display: inline-block; width: 11px; height: 11px; border: 1.5px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -164,13 +168,18 @@
   <span class="header-title">Post Analyzer</span>
   <div class="header-dot"></div>
   <span class="header-sub">Social Performance · Sprinklr CSV</span>
+  <div class="lang-switcher">
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('zh')">中</button>
+    <button class="lang-btn" onclick="setLang('ko')">한</button>
+  </div>
 </div>
 
 <div class="container">
   <div class="intro">
     <div class="intro-eyebrow">Social Media Reporting Tool</div>
     <div class="intro-heading">Top Post <strong>Analysis</strong></div>
-    <div class="intro-desc">上傳 Sprinklr 匯出的 CSV，手動將每篇貼文歸類至 9 個 Content Category，按 Confirm 更新統計表。分類結果自動儲存，下次開啟不需重新選。</div>
+    <div class="intro-desc">Upload Sprinklr CSV exports. Manually assign each post to one of 9 Content Categories, then click Confirm to update the stats table. Classifications are saved automatically.</div>
   </div>
 
   <div class="section-label">Step 01 — Upload</div>
@@ -179,37 +188,183 @@
       <input type="file" id="input-fb" accept=".csv" onchange="handleFile('fb',this)">
       <div class="upload-platform">Facebook</div>
       <div class="upload-label">FB Top Posts CSV</div>
-      <div class="upload-hint">FBPAGE 帳號匯出</div>
-      <div class="upload-filename" id="name-fb">尚未上傳</div>
+      <div class="upload-hint">FBPAGE account export</div>
+      <div class="upload-filename" id="name-fb">Not uploaded</div>
     </div>
     <div class="upload-card" id="zone-ig" onclick="document.getElementById('input-ig').click()">
       <input type="file" id="input-ig" accept=".csv" onchange="handleFile('ig',this)">
       <div class="upload-platform">Instagram</div>
       <div class="upload-label">IG Top Posts CSV</div>
-      <div class="upload-hint">IG 帳號匯出</div>
-      <div class="upload-filename" id="name-ig">尚未上傳</div>
+      <div class="upload-hint">Instagram account export</div>
+      <div class="upload-filename" id="name-ig">Not uploaded</div>
     </div>
     <div class="upload-card" id="zone-threads" onclick="document.getElementById('input-threads').click()">
       <input type="file" id="input-threads" accept=".csv" onchange="handleFile('threads',this)">
       <div class="upload-platform">Threads</div>
       <div class="upload-label">Threads Top Posts CSV</div>
-      <div class="upload-hint">Threads 帳號匯出</div>
-      <div class="upload-filename" id="name-threads">尚未上傳</div>
+      <div class="upload-hint">Threads account export</div>
+      <div class="upload-filename" id="name-threads">Not uploaded</div>
     </div>
   </div>
 
   <div class="section-label" style="margin-top:32px;">Step 02 — Mode</div>
   <div class="mode-row">
-    <span class="mode-label">分析類型：</span>
-    <button class="mode-btn active" data-mode="mom" onclick="setMode('mom')">MOM 當月</button>
-    <button class="mode-btn" data-mode="ytm" onclick="setMode('ytm')">YTM 年初至今</button>
+    <span class="mode-label">Period:</span>
+    <button class="mode-btn active" data-mode="mom" onclick="setMode('mom')">MOM</button>
+    <button class="mode-btn" data-mode="ytm" onclick="setMode('ytm')">YTM</button>
   </div>
 
-  <button class="run-btn" id="run-btn" onclick="runAnalysis()" disabled>▶ 開始分析</button>
+  <button class="run-btn" id="run-btn" onclick="runAnalysis()" disabled>▶ Run Analysis</button>
   <div id="results"></div>
 </div>
 
 <script>
+const I18N = {
+  en: {
+    eyebrow: 'Social Media Reporting Tool',
+    heading1: 'Top Post ',
+    heading2: 'Analysis',
+    desc: 'Upload Sprinklr CSV exports. Manually assign each post to one of 9 Content Categories, then click Confirm to update the stats table. Classifications are saved automatically.',
+    step1: 'Step 01 — Upload',
+    step2: 'Step 02 — Mode',
+    fb_label: 'FB Top Posts CSV', fb_hint: 'FBPAGE account export',
+    ig_label: 'IG Top Posts CSV', ig_hint: 'Instagram account export',
+    th_label: 'Threads Top Posts CSV', th_hint: 'Threads account export',
+    not_uploaded: 'Not uploaded',
+    mode_label: 'Period:',
+    mom: 'MOM', ytm: 'YTM',
+    run: '▶ Run Analysis',
+    cat_section: 'Content Category — Click headers to sort',
+    no_classified: 'No posts classified yet. Select a category for each post below, then click Confirm.',
+    posts_col: 'Posts', pct_col: '% of Total', er_col: 'Avg ER%', bar_col: 'ER Bar',
+    classify_title: 'Select a category for each post, then confirm',
+    confirm_btn: 'Confirm & Update Table', confirmed: '✓ Updated',
+    post_list: 'Post list',
+    top3: 'Top 3 Posts by Engagement',
+    prompt_title: 'Copy and paste into Claude / ChatGPT',
+    copy_prompt: '⎘ Copy Prompt', copied: '✓ Copied!',
+    view_post: '↗ View post',
+    select_placeholder: '— select —',
+    processing: 'Processing...',
+    upload_min: 'Please upload at least one CSV file.',
+    stat_posts: 'Total Posts', stat_er: 'Account ER%', stat_classified: 'Classified',
+    stat_reach: 'Total Reach', stat_top: 'Top Post ER%',
+    mom_full: 'MOM (current month)', ytm_full: 'YTM (year-to-date)',
+    prompt_q: 'Q. Looking at the top 3 posts, what drove their strong engagement?',
+  },
+  zh: {
+    eyebrow: '社群媒體報告工具',
+    heading1: '貼文 ',
+    heading2: '分析',
+    desc: '上傳 Sprinklr 匯出的 CSV，手動將每篇貼文歸類至 9 個 Content Category，按 Confirm 更新統計表。分類結果自動儲存，下次開啟不需重新選。',
+    step1: 'Step 01 — 上傳',
+    step2: 'Step 02 — 模式',
+    fb_label: 'FB 貼文 CSV', fb_hint: 'FBPAGE 帳號匯出',
+    ig_label: 'IG 貼文 CSV', ig_hint: 'IG 帳號匯出',
+    th_label: 'Threads 貼文 CSV', th_hint: 'Threads 帳號匯出',
+    not_uploaded: '尚未上傳',
+    mode_label: '分析類型：',
+    mom: 'MOM 當月', ytm: 'YTM 年初至今',
+    run: '▶ 開始分析',
+    cat_section: '內容分類 — 點擊欄位標題排序',
+    no_classified: '尚無已分類貼文。請在下方為每篇貼文選擇 Category，然後按 Confirm。',
+    posts_col: '貼文數', pct_col: '佔比', er_col: '平均 ER%', bar_col: 'ER 圖',
+    classify_title: '為每篇貼文選擇分類，完成後按 Confirm',
+    confirm_btn: 'Confirm & 更新表格', confirmed: '✓ 已更新',
+    post_list: '貼文列表',
+    top3: '互動前三貼文',
+    prompt_title: '複製後貼入 Claude / ChatGPT',
+    copy_prompt: '⎘ 複製提示詞', copied: '✓ 已複製！',
+    view_post: '↗ 查看貼文',
+    select_placeholder: '— 選擇分類 —',
+    processing: '處理中...',
+    upload_min: '請至少上傳一個 CSV 檔案。',
+    stat_posts: '總貼文數', stat_er: 'Account ER%', stat_classified: '已分類',
+    stat_reach: '總觸及', stat_top: '最高貼文 ER%',
+    mom_full: 'MOM（當月）', ytm_full: 'YTM（年初至今）',
+    prompt_q: 'Q. Looking at the top 3 posts, what drove their strong engagement?',
+  },
+  ko: {
+    eyebrow: '소셜 미디어 리포팅 툴',
+    heading1: '상위 게시물 ',
+    heading2: '분석',
+    desc: 'Sprinklr에서 내보낸 CSV를 업로드하세요. 각 게시물을 9개 콘텐츠 카테고리 중 하나에 수동으로 분류하고 Confirm을 클릭하면 통계 테이블이 업데이트됩니다. 분류 결과는 자동 저장됩니다.',
+    step1: 'Step 01 — 업로드',
+    step2: 'Step 02 — 모드',
+    fb_label: 'FB 게시물 CSV', fb_hint: 'FBPAGE 계정 내보내기',
+    ig_label: 'IG 게시물 CSV', ig_hint: 'Instagram 계정 내보내기',
+    th_label: 'Threads 게시물 CSV', th_hint: 'Threads 계정 내보내기',
+    not_uploaded: '미업로드',
+    mode_label: '분석 유형:',
+    mom: 'MOM 이번 달', ytm: 'YTM 연간 누계',
+    run: '▶ 분석 시작',
+    cat_section: '콘텐츠 카테고리 — 헤더 클릭으로 정렬',
+    no_classified: '분류된 게시물이 없습니다. 아래에서 각 게시물의 카테고리를 선택한 후 Confirm을 누르세요.',
+    posts_col: '게시물', pct_col: '비율', er_col: '평균 ER%', bar_col: 'ER 바',
+    classify_title: '각 게시물의 카테고리를 선택한 후 확인하세요',
+    confirm_btn: 'Confirm & 테이블 업데이트', confirmed: '✓ 업데이트됨',
+    post_list: '게시물 목록',
+    top3: '참여율 상위 3개 게시물',
+    prompt_title: 'Claude / ChatGPT에 복사하여 붙여넣기',
+    copy_prompt: '⎘ 프롬프트 복사', copied: '✓ 복사됨!',
+    view_post: '↗ 게시물 보기',
+    select_placeholder: '— 선택 —',
+    processing: '처리 중...',
+    upload_min: 'CSV 파일을 하나 이상 업로드하세요.',
+    stat_posts: '총 게시물', stat_er: 'Account ER%', stat_classified: '분류됨',
+    stat_reach: '총 도달', stat_top: '최고 게시물 ER%',
+    mom_full: 'MOM (이번 달)', ytm_full: 'YTM (연간 누계)',
+    prompt_q: 'Q. Looking at the top 3 posts, what drove their strong engagement?',
+  }
+};
+
+let currentLang = 'en';
+function t(k){ return I18N[currentLang][k] || I18N['en'][k] || k; }
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent === {en:'EN',zh:'中',ko:'한'}[lang]));
+  applyLang();
+}
+
+function applyLang() {
+  // Static UI elements
+  document.querySelector('.intro-eyebrow').textContent = t('eyebrow');
+  document.querySelector('.intro-heading').innerHTML = t('heading1') + '<strong>' + t('heading2') + '</strong>';
+  document.querySelector('.intro-desc').textContent = t('desc');
+  document.querySelectorAll('.section-label')[0].textContent = t('step1');
+
+  const step2 = document.querySelectorAll('.section-label')[1];
+  if(step2) step2.textContent = t('step2');
+
+  // Upload cards
+  const cards = { fb: ['fb_label','fb_hint'], ig: ['ig_label','ig_hint'], threads: ['th_label','th_hint'] };
+  Object.entries(cards).forEach(([key, [lk, hk]]) => {
+    const zone = document.getElementById('zone-'+key);
+    if(!zone) return;
+    zone.querySelector('.upload-label').textContent = t(lk);
+    zone.querySelector('.upload-hint').textContent = t(hk);
+    const fn = document.getElementById('name-'+key);
+    if(fn && fn.textContent === I18N['en']['not_uploaded'] || fn && fn.textContent === I18N['zh']['not_uploaded'] || fn && fn.textContent === I18N['ko']['not_uploaded']) fn.textContent = t('not_uploaded');
+  });
+
+  // Mode
+  const modeLabel = document.querySelector('.mode-label');
+  if(modeLabel) modeLabel.textContent = t('mode_label');
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    if(b.dataset.mode === 'mom') b.textContent = t('mom');
+    if(b.dataset.mode === 'ytm') b.textContent = t('ytm');
+  });
+
+  const runBtn = document.getElementById('run-btn');
+  if(runBtn && !runBtn.disabled) runBtn.textContent = t('run');
+
+  // Results area (if rendered)
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+}
+
 const CATEGORIES = [
   { id:1, name:'New Product Launch' },
   { id:2, name:'Product Feature' },
@@ -331,10 +486,9 @@ function getCategoryStats(platKey, posts){
 function renderCategoryTable(platKey, posts, tblId){
   if(!catTblSort[tblId]) catTblSort[tblId]={col:'count',dir:'desc'};
   const stats=getCategoryStats(platKey,posts).filter(d=>d.count>0);
-  const classified=posts.filter((_,i)=>(categoryMap[platKey]||{})[postKey(platKey,_,i)]).length;
   return `<div id="ctbl-${tblId}" data-platkey="${platKey}" data-total="${posts.length}">
     ${stats.length===0
-      ? `<div class="info-msg">아직 분류된 貼文이 없습니다. 아래에서 각 貼文의 Category를 선택하고 Confirm을 누르세요.<br><br>No posts classified yet. Select a category for each post below, then click Confirm.</div>`
+      ? `<div class="info-msg">${t('no_classified')}</div>`
       : buildCategoryTable(stats,tblId,posts.length)}
   </div>`;
 }
@@ -352,11 +506,11 @@ function buildCategoryTable(stats, tblId, totalPosts){
   };
   return `<table class="data-table">
     <thead><tr>
-      <th>#</th><th>Content Category</th>
-      <th class="num sortable" onclick="sortCat('${tblId}','count','${col}','${dir}')">Posts ${arrow('count')}</th>
-      <th class="num sortable" onclick="sortCat('${tblId}','pct','${col}','${dir}')">% of Total ${arrow('pct')}</th>
-      <th class="num sortable" onclick="sortCat('${tblId}','avgER','${col}','${dir}')">Avg ER% ${arrow('avgER')}</th>
-      <th style="width:90px">ER Bar</th>
+      <th>#</th><th>${t('cat_section').split('—')[0].trim()}</th>
+      <th class="num sortable" onclick="sortCat('${tblId}','count','${col}','${dir}')">${t('posts_col')} ${arrow('count')}</th>
+      <th class="num sortable" onclick="sortCat('${tblId}','pct','${col}','${dir}')">${t('pct_col')} ${arrow('pct')}</th>
+      <th class="num sortable" onclick="sortCat('${tblId}','avgER','${col}','${dir}')">${t('er_col')} ${arrow('avgER')}</th>
+      <th style="width:90px">${t('bar_col')}</th>
     </tr></thead>
     <tbody>
       ${sorted.map((c,i)=>`<tr>
@@ -396,7 +550,7 @@ function renderClassifyList(platKey, posts){
         <div class="post-preview-text">${p.text.replace(/</g,'&lt;').replace(/\n/g,' ')}</div>
       </div>
       <select class="post-cat-select ${cls}" data-platkey="${platKey}" data-k="${k}" onchange="updateCat(this)">
-        <option value="">— select —</option>
+        <option value="">${t('select_placeholder')}</option>
         ${CAT_OPTIONS}
       </select>
     </div>`;
@@ -435,16 +589,21 @@ function confirmClassify(platKey){
   if(wrap){
     const stats=getCategoryStats(platKey,posts).filter(d=>d.count>0);
     if(stats.length===0){
-      wrap.innerHTML=`<div class="info-msg">No posts classified yet. Select a category for each post below, then click Confirm.</div>`;
+      wrap.innerHTML=`<div class="info-msg">${t('no_classified')}</div>`;
     } else {
       wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length);
       wrap.dataset.platkey=platKey;
     }
   }
+  const classified=posts.filter((_,i)=>(categoryMap[platKey]||{})[postKey(platKey,_,i)]).length;
+  const meta=document.getElementById('meta-'+platKey);
+  const modeLabel=currentMode==='mom'?t('mom'):t('ytm');
+  if(meta) meta.textContent=`${modeLabel} · ${posts.length} posts · ${classified} ${t('stat_classified').toLowerCase()}`;
+
   const btn=document.getElementById('cfbtn-'+platKey);
   if(btn){
-    btn.textContent='✓ Updated';btn.classList.add('done');
-    setTimeout(()=>{btn.textContent='Confirm & Update Table';btn.classList.remove('done');},2000);
+    btn.textContent=t('confirmed');btn.classList.add('done');
+    setTimeout(()=>{btn.textContent=t('confirm_btn');btn.classList.remove('done');},2000);
   }
 }
 
@@ -464,7 +623,7 @@ function renderTopPosts(posts){
       <div>
         <div class="top-post-campaign">${p.campaign}</div>
         <div class="top-post-text">${p.text.replace(/</g,'&lt;').replace(/\n/g,' ')}</div>
-        ${p.link?`<a class="top-post-link" href="${p.link}" target="_blank">↗ View post</a>`:''}
+        ${p.link?`<a class="top-post-link" href="${p.link}" target="_blank">${t('view_post')}</a>`:''}
       </div>
       <div>
         <div class="top-post-er">${p.er.toFixed(2)}%</div>
@@ -481,30 +640,30 @@ function buildPrompt(plat, posts, accountER, mode){
   const top3=[...posts].sort((a,b)=>b.eng-a.eng).slice(0,3);
   return `You are a social media analyst. Answer the question in English. Be concise — 2–3 sentences max, suitable for a report slide.
 
-Platform: ${plat.name} | Period: ${mode==='mom'?'MOM (current month)':'YTM (year-to-date)'}
+Platform: ${plat.name} | Period: ${mode==='mom'?t('mom_full'):t('ytm_full')}
 Total Posts: ${posts.length} | Account ER%: ${pct(accountER)}
 
 Top 3 Posts by Engagement:
 ${top3.map((p,i)=>`${i+1}. [${p.campaign}] ER: ${pct(p.er)}, Eng: ${p.eng.toLocaleString()}, Content: ${p.text.slice(0,120).replace(/\n/g,' ')}`).join('\n')}
 
-Q. Looking at the top 3 posts, what drove their strong engagement?`;
+${t('prompt_q')}`;
 }
 
 function makePromptBox(id, prompt){
   return `<div class="prompt-section">
     <div class="prompt-section-header">
       <span class="prompt-badge">Prompt</span>
-      <span class="prompt-section-title">Copy and paste into Claude / ChatGPT</span>
+      <span class="prompt-section-title">${t('prompt_title')}</span>
     </div>
     <div class="prompt-box" id="pb-${id}">${prompt.replace(/</g,'&lt;')}</div>
-    <button class="copy-prompt-btn" id="cpbtn-${id}" onclick="copyPrompt('${id}')">⎘ Copy Prompt</button>
+    <button class="copy-prompt-btn" id="cpbtn-${id}" onclick="copyPrompt('${id}')">${t('copy_prompt')}</button>
   </div>`;
 }
 function copyPrompt(id){
   navigator.clipboard.writeText(document.getElementById('pb-'+id).innerText).then(()=>{
     const btn=document.getElementById('cpbtn-'+id);
-    btn.textContent='✓ Copied!';btn.classList.add('copied');
-    setTimeout(()=>{btn.textContent='⎘ Copy Prompt';btn.classList.remove('copied');},2500);
+    btn.textContent=t('copied');btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=t('copy_prompt');btn.classList.remove('copied');},2500);
   });
 }
 
@@ -513,7 +672,7 @@ function platClass(k){ return {fb:'plat-fb',ig:'plat-ig',threads:'plat-threads'}
 // ── Main ──────────────────────────────────────────────────────
 function runAnalysis(){
   const resultsEl=document.getElementById('results');
-  resultsEl.innerHTML='<div class="info-msg"><span class="spinner"></span>  Processing...</div>';
+  resultsEl.innerHTML=`<div class="info-msg"><span class="spinner"></span>  ${t('processing')}</div>`;
 
   Object.assign(categoryMap, loadSaved());
 
@@ -524,13 +683,13 @@ function runAnalysis(){
   ].filter(Boolean);
 
   if(!platforms.length){
-    resultsEl.innerHTML='<div class="info-msg">Please upload at least one CSV file.</div>';
+    resultsEl.innerHTML=`<div class="info-msg">${t('upload_min')}</div>`;
     return;
   }
 
   platforms.forEach(plat=>{ platPostsMap[plat.key]=processData(csvData[plat.key]); });
 
-  const modeLabel=currentMode==='mom'?'MOM':'YTM';
+  const modeLabel=currentMode==='mom'?t('mom'):t('ytm');
   let html='';
 
   for(const plat of platforms){
@@ -543,35 +702,35 @@ function runAnalysis(){
     html+=`<div class="result-block ${platClass(plat.key)}">
       <div class="result-block-header">
         <div class="result-block-title">${plat.name}</div>
-        <div class="result-block-meta">${modeLabel} · ${posts.length} posts · ${classified} classified</div>
+        <div class="result-block-meta" id="meta-${plat.key}">${modeLabel} · ${posts.length} posts · ${classified} ${t('stat_classified').toLowerCase()}</div>
       </div>
 
       <div class="stats-row">
-        <div class="stat-card"><div class="stat-name">Total Posts</div><div class="stat-value">${posts.length}</div></div>
-        <div class="stat-card"><div class="stat-name">Account ER%</div><div class="stat-value plat-val">${pct(accountER)}</div></div>
-        <div class="stat-card"><div class="stat-name">Classified</div><div class="stat-value">${classified}<span style="font-size:14px;color:var(--ink-muted)"> / ${posts.length}</span></div></div>
-        <div class="stat-card"><div class="stat-name">Total Reach</div><div class="stat-value" style="font-size:20px">${posts.reduce((s,p)=>s+p.reach,0).toLocaleString()}</div></div>
-        <div class="stat-card"><div class="stat-name">Top Post ER%</div><div class="stat-value green">${pct(Math.max(...posts.map(p=>p.er)))}</div></div>
+        <div class="stat-card"><div class="stat-name">${t('stat_posts')}</div><div class="stat-value">${posts.length}</div></div>
+        <div class="stat-card"><div class="stat-name">${t('stat_er')}</div><div class="stat-value plat-val">${pct(accountER)}</div></div>
+        <div class="stat-card"><div class="stat-name">${t('stat_classified')}</div><div class="stat-value">${classified}<span style="font-size:14px;color:var(--ink-muted)"> / ${posts.length}</span></div></div>
+        <div class="stat-card"><div class="stat-name">${t('stat_reach')}</div><div class="stat-value" style="font-size:20px">${posts.reduce((s,p)=>s+p.reach,0).toLocaleString()}</div></div>
+        <div class="stat-card"><div class="stat-name">${t('stat_top')}</div><div class="stat-value green">${pct(Math.max(...posts.map(p=>p.er)))}</div></div>
       </div>
 
-      <div class="section-label" style="margin-top:24px;">Content Category — Click headers to sort</div>
+      <div class="section-label" style="margin-top:24px;">${t('cat_section')}</div>
       ${renderCategoryTable(plat.key, posts, tblId)}
 
       <div class="classify-section">
         <div class="classify-header">
-          <span class="classify-title">Select a category for each post, then confirm</span>
-          <button class="confirm-btn" id="cfbtn-${plat.key}" onclick="confirmClassify('${plat.key}')">Confirm & Update Table</button>
+          <span class="classify-title">${t('classify_title')}</span>
+          <button class="confirm-btn" id="cfbtn-${plat.key}" onclick="confirmClassify('${plat.key}')">${t('confirm_btn')}</button>
         </div>
         <div class="collapse-toggle" onclick="toggleCollapse('${classifyListId}')">
           <span class="toggle-icon" id="icon-${classifyListId}">▼</span>
-          <span class="toggle-label">Post list (${posts.length} posts)</span>
+          <span class="toggle-label">${t('post_list')} (${posts.length} posts)</span>
         </div>
         <div class="collapsible" id="${classifyListId}">
           ${renderClassifyList(plat.key, posts)}
         </div>
       </div>
 
-      <div class="section-label" style="margin-top:28px;">Top 3 Posts by Engagement</div>
+      <div class="section-label" style="margin-top:28px;">${t('top3')}</div>
       ${renderTopPosts(posts)}
 
       ${makePromptBox(plat.key+'-prompt', buildPrompt(plat, posts, accountER, currentMode))}
@@ -580,10 +739,9 @@ function runAnalysis(){
   }
 
   resultsEl.innerHTML=html;
-
-  // Restore saved selections
   platforms.forEach(plat=>applySelects(plat.key, platPostsMap[plat.key]));
 }
+
 </script>
 </body>
 </html>
