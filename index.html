@@ -247,10 +247,8 @@
     <button class="mode-btn" data-mode="ytm" onclick="setMode('ytm')">YTM</button>
   </div>
 
-  <button class="run-btn" id="run-btn" onclick="runAnalysis()" disabled>▶ Run Analysis</button>
-
   <!-- Date Range Filter (shown after CSV upload) -->
-  <div id="date-filter-wrap" style="display:none; margin-top:20px;">
+  <div id="date-filter-wrap" style="display:none; margin-top:20px; margin-bottom:16px;">
     <div class="section-label" id="date-filter-label-el">Step 03 — Date Range Filter</div>
     <div class="date-filter-row">
       <span class="date-filter-label" id="df-from-lbl">From</span>
@@ -262,6 +260,8 @@
       <span class="date-range-info" id="df-count-info" style="display:none"></span>
     </div>
   </div>
+
+  <button class="run-btn" id="run-btn" onclick="runAnalysis()" disabled>▶ Run Analysis</button>
   <div id="results"></div>
 </div>
 
@@ -535,9 +535,9 @@ function initDateFilter() {
   document.getElementById('df-from-lbl').textContent = t('df_from');
   document.getElementById('df-to-lbl').textContent = t('df_to');
   document.getElementById('df-reset-btn').textContent = t('df_reset');
-  // Listen for changes → re-run
+  // Listen for changes → only update info, re-run on Run button
   ['df-from','df-to'].forEach(id => {
-    document.getElementById(id).onchange = () => { updateDateRangeInfo(); runAnalysis(); };
+    document.getElementById(id).onchange = () => { updateDateRangeInfo(); };
   });
 }
 const platPostsMap = {};
