@@ -699,7 +699,7 @@ function sortCat(tblId, col, prevCol, prevDir){
   catTblSort[tblId]={col,dir};
   const wrap=document.getElementById('ctbl-'+tblId);
   const platKey=wrap.dataset.platkey;
-  const posts=platPostsMap[platKey];
+  const posts=filterByDate(platPostsMap[platKey]);
   const stats=getCategoryStats(platKey,posts).filter(d=>d.count>0);
   wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length);
   wrap.dataset.platkey=platKey;
@@ -752,7 +752,8 @@ function updateCat(sel){
 }
 
 function confirmClassify(platKey){
-  const posts=platPostsMap[platKey];
+  const allPosts=platPostsMap[platKey];
+  const posts=filterByDate(allPosts);
   const tblId='cat-'+platKey;
   const wrap=document.getElementById('ctbl-'+tblId);
   if(wrap){
@@ -767,7 +768,9 @@ function confirmClassify(platKey){
   const classified=getCategoryStats(platKey,posts).reduce((s,c)=>s+c.count,0);
   const meta=document.getElementById('meta-'+platKey);
   const modeLabel=currentMode==='mom'?t('mom'):t('ytm');
-  if(meta) meta.textContent=`${modeLabel} · ${posts.length} posts · ${classified} ${t('stat_classified').toLowerCase()}`;
+  const {from,to}=getDateInputs();
+  const dateTag=(from||to)?` · ${from?toDateInputVal(from):''} → ${to?toDateInputVal(to):''}`:''  ;
+  if(meta) meta.textContent=`${modeLabel} · ${posts.length}${allPosts.length!==posts.length?'/'+allPosts.length:''} posts · ${classified} ${t('stat_classified').toLowerCase()}${dateTag}`;
 
   const btn=document.getElementById('cfbtn-'+platKey);
   if(btn){
