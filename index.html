@@ -168,6 +168,17 @@
   .date-reset-btn:hover { border-color: var(--accent); color: var(--accent); }
   .date-range-info { font-family: var(--mono); font-size: 10px; color: var(--accent); padding: 3px 8px; border: 1px solid var(--accent); background: rgba(117,145,168,0.06); }
 
+  /* Sub-tag expand */
+  .hidden-subtag { display: none; }
+  .subtag-row td { background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .subtag-fill { background: var(--accent) !important; opacity: 0.5; }
+  .subtag-toggle { font-size: 9px; color: var(--ink-muted); margin-right: 2px; display:inline-block; transition: transform 0.15s; }
+  .has-subtags:hover td { background: rgba(117,145,168,0.06); }
+  /* Tag input */
+  .post-tag-input { width: 110px; padding: 3px 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font-family: var(--mono); font-size: 10px; outline: none; flex-shrink: 0; transition: border-color 0.15s; }
+  .post-tag-input:focus { border-color: var(--accent); }
+  .post-tag-input::placeholder { color: var(--ink-muted); }
+
   @media (max-width: 760px) {
     .upload-grid { grid-template-columns: 1fr 1fr; }
     .stats-row { grid-template-columns: repeat(3, 1fr); }
@@ -472,8 +483,17 @@ const CATEGORIES = [
 ];
 const CAT_OPTIONS = CATEGORIES.map(c=>`<option value="${c.id}">${c.id}. ${c.name}</option>`).join('');
 const STORAGE_KEY = 'post-analyzer-cats-v3';
+const TAG_STORAGE_KEY = 'post-analyzer-tags-v1';   // {platKey: {postKey: tagString}}
+const TAG_POOL_KEY    = 'post-analyzer-tagpool-v1'; // {catId: [tag, tag, ...]}
+
+function loadTagMap()  { try { return JSON.parse(localStorage.getItem(TAG_STORAGE_KEY)||'{}'); } catch { return {}; } }
+function saveTagMap()  { try { localStorage.setItem(TAG_STORAGE_KEY, JSON.stringify(tagMap)); } catch {} }
+function loadTagPool() { try { return JSON.parse(localStorage.getItem(TAG_POOL_KEY)||'{}'); } catch { return {}; } }
+function saveTagPool() { try { localStorage.setItem(TAG_POOL_KEY, JSON.stringify(tagPool)); } catch {} }
 
 const csvData = { fb:null, ig:null, threads:null };
+let tagMap  = {};   // {platKey: {postKey: tagString}}
+let tagPool = {};   // {catId: Set-as-array}
 let currentMode = 'mom';
 let dateRangeMin = null; // overall min date across all uploaded CSVs
 let dateRangeMax = null;
@@ -616,9 +636,9 @@ function parseCSV(text) {
 // ── Data ─────────────────────────────────────────────────────
 function processData(rows) {
   return rows.map(r=>{
-    const eng=parseInt((r['Engagements + Clicks (SUM)']||r['Engagements']||'0').replace(/,/g,''))||0;
-    const reach=parseInt((r['Post Reach (SUM)']||r['Reach']||'0').replace(/,/g,''))||0;
-    const erRaw=r['Engagement Rate in %']||r['Engagement Rate (%)']||r['ER%']||'';
+    const eng=parseInt((r['Threads Engagements + Clicks (SUM)']||r['Engagements + Clicks (SUM)']||r['Engagements']||'0').replace(/,/g,''))||0;
+    const reach=parseInt((r['Threads Post Total Views (SUM)']||r['Post Reach (SUM)']||r['Reach']||'0').replace(/,/g,''))||0;
+    const erRaw=r['Threads Engagements Rate in %']||r['Engagement Rate in %']||r['Engagement Rate (%)']||r['ER%']||'';
     let er=erRaw?(parseFloat(erRaw.replace('%',''))||0):0;
     if(er===0&&reach>0) er=(eng/reach)*100;
     return {
@@ -658,11 +678,11 @@ function renderCategoryTable(platKey, posts, tblId){
   return `<div id="ctbl-${tblId}" data-platkey="${platKey}" data-total="${posts.length}">
     ${stats.length===0
       ? `<div class="info-msg">${t('no_classified')}</div>`
-      : buildCategoryTable(stats,tblId,posts.length)}
+      : buildCategoryTable(stats,tblId,posts.length,platKey,posts)}
   </div>`;
 }
 
-function buildCategoryTable(stats, tblId, totalPosts){
+function buildCategoryTable(stats, tblId, totalPosts, platKey, posts){
   const {col,dir}=catTblSort[tblId]||{col:'count',dir:'desc'};
   const sorted=[...stats].sort((a,b)=>{
     const av=a[col]??0, bv=b[col]??0;
@@ -673,6 +693,20 @@ function buildCategoryTable(stats, tblId, totalPosts){
     if(col!==c) return '<span class="sort-arrow inactive">↕</span>';
     return `<span class="sort-arrow">${dir==='desc'?'↓':'↑'}</span>`;
   };
+  const tagRowsFor = (catId) => {
+    if (!platKey || !posts) return '';
+    const ts = getTagStats(platKey, posts, catId);
+    if (!ts.length) return '';
+    const maxT = Math.max(...ts.map(s=>s.avgER), 0.001);
+    return ts.map(s=>`<tr class="subtag-row">
+      <td></td>
+      <td style="padding-left:24px;color:var(--ink-muted);font-size:12px">↳ ${s.tag}</td>
+      <td class="num" style="font-size:12px">${s.count}</td>
+      <td class="num" style="font-size:12px">${totalPosts>0?(s.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
+      <td class="num" style="font-size:12px">${s.avgER.toFixed(2)}%</td>
+      <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill subtag-fill" style="width:${(s.avgER/maxT*100).toFixed(1)}%"></div></div></div></td>
+    </tr>`).join('');
+  };
   return `<table class="data-table">
     <thead><tr>
       <th>#</th><th>${t('cat_section').split('—')[0].trim()}</th>
@@ -682,14 +716,18 @@ function buildCategoryTable(stats, tblId, totalPosts){
       <th style="width:90px">${t('bar_col')}</th>
     </tr></thead>
     <tbody>
-      ${sorted.map((c,i)=>`<tr>
-        <td class="rank">${i+1}</td>
-        <td style="font-weight:500">${c.name}</td>
-        <td class="num">${c.count}</td>
-        <td class="num">${totalPosts>0?(c.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
-        <td class="num">${c.avgER.toFixed(2)}%</td>
-        <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill" style="width:${(c.avgER/maxER*100).toFixed(1)}%"></div></div></div></td>
-      </tr>`).join('')}
+      ${sorted.map((c,i)=>{
+        const hasTags = platKey && posts && getTagStats(platKey, posts, c.id).length > 0;
+        const expandId = `subtag-${tblId}-${c.id}`;
+        return `<tr class="cat-row${hasTags?' has-subtags':''}" onclick="${hasTags?`toggleSubtags('${expandId}')`:''}" style="${hasTags?'cursor:pointer':''}">
+          <td class="rank">${i+1}</td>
+          <td style="font-weight:500">${hasTags?`<span class="subtag-toggle" id="icon-${expandId}">▶</span> `:' '}${c.name}</td>
+          <td class="num">${c.count}</td>
+          <td class="num">${totalPosts>0?(c.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
+          <td class="num">${c.avgER.toFixed(2)}%</td>
+          <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill" style="width:${(c.avgER/maxER*100).toFixed(1)}%"></div></div></div></td>
+        </tr>${hasTags?`<tr id="${expandId}" class="subtag-group hidden-subtag"><td colspan="6" style="padding:0"><table style="width:100%;border-collapse:collapse">${tagRowsFor(c.id)}</table></td></tr>`:''}`;
+      }).join('')}
     </tbody>
   </table>`;
 }
@@ -701,7 +739,7 @@ function sortCat(tblId, col, prevCol, prevDir){
   const platKey=wrap.dataset.platkey;
   const posts=filterByDate(platPostsMap[platKey]);
   const stats=getCategoryStats(platKey,posts).filter(d=>d.count>0);
-  wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length);
+  wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length,platKey,posts);
   wrap.dataset.platkey=platKey;
 }
 
@@ -712,10 +750,19 @@ function renderClassifyList(platKey, posts){
     const k=postKey(platKey,p,i);
     const cd=saved[k];
     const cls=cd?'set':'';
+    const currentCatId = cd ? cd.id : '';
+    const currentTag   = (tagMap[platKey]||{})[k] || '';
     return `<div class="post-classify-row">
       <div class="post-idx">${i+1}</div>
-      <div>
-        <div class="post-preview-campaign">${p.campaign}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="post-preview-campaign">${p.campaign}</div>
+          <input type="text" class="post-tag-input" placeholder="sub-tag (optional)"
+            list="dl-cat-${currentCatId||0}"
+            data-platkey="${platKey}" data-k="${k}" data-catid="${currentCatId}"
+            value="${currentTag.replace(/"/g,'&quot;')}"
+            onchange="updateTag(this)" oninput="this.dataset.catid=(this.closest('.post-classify-row').querySelector('select').value||0);this.setAttribute('list','dl-cat-'+(this.dataset.catid||0))">
+        </div>
         <div class="post-preview-text">${p.text.replace(/</g,'&lt;').replace(/\n/g,' ')}</div>
       </div>
       <select class="post-cat-select ${cls}" data-platkey="${platKey}" data-k="${k}" onchange="updateCat(this)">
@@ -724,7 +771,7 @@ function renderClassifyList(platKey, posts){
       </select>
     </div>`;
   }).join('');
-  return `<div class="post-classify-scroll"><div class="post-classify-list" id="clist-${platKey}">${rows}</div></div>`;
+  return `${buildDatalistHTML()}<div class="post-classify-scroll"><div class="post-classify-list" id="clist-${platKey}">${rows}</div></div>`;
 }
 
 function applySelects(platKey, posts){
@@ -751,6 +798,54 @@ function updateCat(sel){
   saveCats();
 }
 
+function updateTag(input) {
+  const platKey = input.dataset.platkey;
+  const k       = input.dataset.k;
+  const catId   = input.dataset.catid;
+  const val     = input.value.trim();
+  if (!tagMap[platKey]) tagMap[platKey] = {};
+  if (val) {
+    tagMap[platKey][k] = val;
+    // Add to pool for this category
+    if (!tagPool[catId]) tagPool[catId] = [];
+    if (!tagPool[catId].includes(val)) { tagPool[catId].push(val); saveTagPool(); }
+  } else {
+    delete tagMap[platKey][k];
+  }
+  saveTagMap();
+  // Refresh datalist so new tag is instantly available
+  refreshDatalist(catId);
+}
+
+function refreshDatalist(catId) {
+  const dl = document.getElementById('dl-cat-'+catId);
+  if (!dl) return;
+  dl.innerHTML = (tagPool[catId]||[]).map(t=>`<option value="${t.replace(/"/g,'&quot;')}">`).join('');
+}
+
+function buildDatalistHTML() {
+  // One <datalist> per category, id="dl-cat-{catId}"
+  return CATEGORIES.map(c=>`<datalist id="dl-cat-${c.id}">${(tagPool[c.id]||[]).map(t=>`<option value="${t.replace(/"/g,'&quot;')}">`).join('')}</datalist>`).join('');
+}
+
+function getTagStats(platKey, posts, catId) {
+  // Returns [{tag, count, totalEng, totalReach, avgER}] for a given category
+  const tmap = {};
+  posts.forEach((p,i) => {
+    const k  = postKey(platKey, p, i);
+    const cd = (categoryMap[platKey]||{})[k];
+    if (!cd || cd.id !== catId) return;
+    const tag = (tagMap[platKey]||{})[k] || '—';
+    if (!tmap[tag]) tmap[tag] = {tag, count:0, totalEng:0, totalReach:0};
+    tmap[tag].count++;
+    tmap[tag].totalEng   += p.eng;
+    tmap[tag].totalReach += p.reach;
+  });
+  return Object.values(tmap).map(d=>({
+    ...d, avgER: d.totalReach>0 ? (d.totalEng/d.totalReach*100) : 0
+  })).sort((a,b)=>b.count-a.count);
+}
+
 function confirmClassify(platKey){
   const allPosts=platPostsMap[platKey];
   const posts=filterByDate(allPosts);
@@ -761,7 +856,7 @@ function confirmClassify(platKey){
     if(stats.length===0){
       wrap.innerHTML=`<div class="info-msg">${t('no_classified')}</div>`;
     } else {
-      wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length);
+      wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length,platKey,posts);
       wrap.dataset.platkey=platKey;
     }
   }
@@ -771,12 +866,23 @@ function confirmClassify(platKey){
   const {from,to}=getDateInputs();
   const dateTag=(from||to)?` · ${from?toDateInputVal(from):''} → ${to?toDateInputVal(to):''}`:''  ;
   if(meta) meta.textContent=`${modeLabel} · ${posts.length}${allPosts.length!==posts.length?'/'+allPosts.length:''} posts · ${classified} ${t('stat_classified').toLowerCase()}${dateTag}`;
+  // Also update the stat card number immediately (without full re-render)
+  const statCard=document.getElementById('statcard-classified-'+platKey);
+  if(statCard) statCard.innerHTML=`${classified}<span style="font-size:14px;color:var(--ink-muted)"> / ${posts.length}</span>`;
 
   const btn=document.getElementById('cfbtn-'+platKey);
   if(btn){
     btn.textContent=t('confirmed');btn.classList.add('done');
     setTimeout(()=>{btn.textContent=t('confirm_btn');btn.classList.remove('done');},2000);
   }
+}
+
+function toggleSubtags(id){
+  const row=document.getElementById(id);
+  const icon=document.getElementById('icon-'+id);
+  if(!row) return;
+  row.classList.toggle('hidden-subtag');
+  if(icon) icon.textContent=row.classList.contains('hidden-subtag')?'▶':'▼';
 }
 
 function toggleCollapse(id){
@@ -847,6 +953,10 @@ function runAnalysis(){
   resultsEl.innerHTML=`<div class="info-msg"><span class="spinner"></span>  ${t('processing')}</div>`;
 
   Object.assign(categoryMap, loadSaved());
+  Object.assign(tagMap,      loadTagMap());
+  // Rebuild tagPool as plain objects (Sets not JSON-serialisable)
+  const raw = loadTagPool();
+  Object.keys(raw).forEach(k=>{ tagPool[k]=raw[k]; });
 
   const platforms=[
     csvData.fb      ?{key:'fb',     name:'Facebook'}:null,
@@ -887,7 +997,7 @@ function runAnalysis(){
       <div class="stats-row">
         <div class="stat-card"><div class="stat-name">${t('stat_posts')}</div><div class="stat-value">${posts.length}</div></div>
         <div class="stat-card"><div class="stat-name">${t('stat_er')}</div><div class="stat-value plat-val">${pct(accountER)}</div></div>
-        <div class="stat-card"><div class="stat-name">${t('stat_classified')}</div><div class="stat-value">${classified}<span style="font-size:14px;color:var(--ink-muted)"> / ${posts.length}</span></div></div>
+        <div class="stat-card"><div class="stat-name">${t('stat_classified')}</div><div class="stat-value" id="statcard-classified-${plat.key}">${classified}<span style="font-size:14px;color:var(--ink-muted)"> / ${posts.length}</span></div></div>
         <div class="stat-card"><div class="stat-name">${t('stat_reach')}</div><div class="stat-value" style="font-size:20px">${posts.reduce((s,p)=>s+p.reach,0).toLocaleString()}</div></div>
         <div class="stat-card"><div class="stat-name">${t('stat_top')}</div><div class="stat-value green">${pct(Math.max(...posts.map(p=>p.er)))}</div></div>
       </div>
