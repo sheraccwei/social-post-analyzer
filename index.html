@@ -171,9 +171,22 @@
   /* Sub-tag expand */
   .hidden-subtag { display: none; }
   .subtag-row td { background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .subtag-row:hover td { background: rgba(117,145,168,0.1); }
+  .subtag-header-row td { background: var(--surface-alt, #f0f0f0) !important; border-bottom: 1px solid var(--border); }
   .subtag-fill { background: var(--accent) !important; opacity: 0.5; }
   .subtag-toggle { font-size: 9px; color: var(--ink-muted); margin-right: 2px; display:inline-block; transition: transform 0.15s; }
   .has-subtags:hover td { background: rgba(117,145,168,0.06); }
+  /* Subtag post list */
+  .subtag-post-list { background: var(--surface); border-top: 1px solid var(--border); }
+  .subtag-post-items { padding: 4px 0; }
+  .subtag-post-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 12px 6px 36px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .subtag-post-item:last-child { border-bottom: none; }
+  .subtag-post-num { min-width: 18px; color: var(--ink-muted); font-size: 11px; padding-top: 1px; }
+  .subtag-post-body { flex: 1; min-width: 0; }
+  .subtag-post-campaign { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+  .subtag-post-preview { color: var(--ink-muted); font-size: 11px; margin-top: 2px; line-height: 1.4; }
+  .subtag-post-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 11px; color: var(--ink-muted); white-space: nowrap; min-width: 72px; }
+  .subtag-post-link { color: var(--accent); text-decoration: none; font-size: 11px; }
   /* Tag input */
   .post-tag-input { width: 110px; padding: 3px 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font-family: var(--mono); font-size: 10px; outline: none; flex-shrink: 0; transition: border-color 0.15s; }
   .post-tag-input:focus { border-color: var(--accent); }
@@ -572,6 +585,7 @@ function initDateFilter() {
 const platPostsMap = {};
 let categoryMap = {};
 const catTblSort = {};
+const subtagSort = {}; // keyed by tblId+'::'+catId → {col,dir}
 
 function loadSaved() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch { return {}; } }
 function saveCats()  { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(categoryMap)); } catch {} }
@@ -682,6 +696,47 @@ function renderCategoryTable(platKey, posts, tblId){
   </div>`;
 }
 
+function buildSubtagRows(tblId, catId, platKey, posts, totalPosts){
+  if (!platKey || !posts) return '';
+  const sk = tblId+'::'+catId;
+  const {col:sc, dir:sd} = subtagSort[sk] || {col:'count', dir:'desc'};
+  let ts = getTagStats(platKey, posts, catId);
+  if (!ts.length) return '';
+  ts = [...ts].sort((a,b)=>{
+    const av=a[sc]??0, bv=b[sc]??0;
+    return sd==='desc'?bv-av:av-bv;
+  });
+  const maxT = Math.max(...ts.map(s=>s.avgER), 0.001);
+  const sarrow=c=>{
+    if(sc!==c) return '<span class="sort-arrow inactive" style="font-size:10px">↕</span>';
+    return `<span class="sort-arrow" style="font-size:10px">${sd==='desc'?'↓':'↑'}</span>`;
+  };
+  const hdr = `<tr class="subtag-header-row">
+    <td colspan="2" style="padding:4px 8px 4px 24px;font-size:11px;color:var(--ink-muted);font-weight:600;background:var(--surface-alt,#f0f0f0)"></td>
+    <td class="num sortable" style="font-size:11px;background:var(--surface-alt,#f0f0f0)" onclick="sortSubtag('${tblId}','${catId}','count')">${t('posts_col')} ${sarrow('count')}</td>
+    <td class="num" style="font-size:11px;background:var(--surface-alt,#f0f0f0)">${t('pct_col')}</td>
+    <td class="num sortable" style="font-size:11px;background:var(--surface-alt,#f0f0f0)" onclick="sortSubtag('${tblId}','${catId}','totalReach')">Reach ${sarrow('totalReach')}</td>
+    <td class="num sortable" style="font-size:11px;background:var(--surface-alt,#f0f0f0)" onclick="sortSubtag('${tblId}','${catId}','avgER')">${t('er_col')} ${sarrow('avgER')}</td>
+    <td style="background:var(--surface-alt,#f0f0f0);width:90px"></td>
+  </tr>`;
+  const rows = ts.map(s=>{
+    const postListId = `subpost-${tblId}-${catId}-${s.tag.replace(/[^a-z0-9]/gi,'_')}`;
+    return `<tr class="subtag-row" onclick="toggleSubtagPosts('${postListId}','${tblId}','${catId}','${s.tag.replace(/'/g,"\\'")}','${platKey}')" style="cursor:pointer">
+      <td></td>
+      <td style="padding-left:24px;color:var(--ink-muted);font-size:12px"><span class="subtag-toggle" id="icon-${postListId}">▶</span> ${s.tag}</td>
+      <td class="num" style="font-size:12px">${s.count}</td>
+      <td class="num" style="font-size:12px">${totalPosts>0?(s.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
+      <td class="num" style="font-size:12px">${s.totalReach>0?s.totalReach.toLocaleString():'-'}</td>
+      <td class="num" style="font-size:12px">${s.avgER.toFixed(2)}%</td>
+      <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill subtag-fill" style="width:${(s.avgER/maxT*100).toFixed(1)}%"></div></div></div></td>
+    </tr>
+    <tr id="${postListId}" class="hidden-subtag"><td colspan="7" style="padding:0">
+      <div class="subtag-post-list" id="spl-${postListId}"></div>
+    </td></tr>`;
+  }).join('');
+  return hdr + rows;
+}
+
 function buildCategoryTable(stats, tblId, totalPosts, platKey, posts){
   const {col,dir}=catTblSort[tblId]||{col:'count',dir:'desc'};
   const sorted=[...stats].sort((a,b)=>{
@@ -693,25 +748,12 @@ function buildCategoryTable(stats, tblId, totalPosts, platKey, posts){
     if(col!==c) return '<span class="sort-arrow inactive">↕</span>';
     return `<span class="sort-arrow">${dir==='desc'?'↓':'↑'}</span>`;
   };
-  const tagRowsFor = (catId) => {
-    if (!platKey || !posts) return '';
-    const ts = getTagStats(platKey, posts, catId);
-    if (!ts.length) return '';
-    const maxT = Math.max(...ts.map(s=>s.avgER), 0.001);
-    return ts.map(s=>`<tr class="subtag-row">
-      <td></td>
-      <td style="padding-left:24px;color:var(--ink-muted);font-size:12px">↳ ${s.tag}</td>
-      <td class="num" style="font-size:12px">${s.count}</td>
-      <td class="num" style="font-size:12px">${totalPosts>0?(s.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
-      <td class="num" style="font-size:12px">${s.avgER.toFixed(2)}%</td>
-      <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill subtag-fill" style="width:${(s.avgER/maxT*100).toFixed(1)}%"></div></div></div></td>
-    </tr>`).join('');
-  };
   return `<table class="data-table">
     <thead><tr>
       <th>#</th><th>${t('cat_section').split('—')[0].trim()}</th>
       <th class="num sortable" onclick="sortCat('${tblId}','count','${col}','${dir}')">${t('posts_col')} ${arrow('count')}</th>
       <th class="num sortable" onclick="sortCat('${tblId}','pct','${col}','${dir}')">${t('pct_col')} ${arrow('pct')}</th>
+      <th class="num sortable" onclick="sortCat('${tblId}','totalReach','${col}','${dir}')">Reach ${arrow('totalReach')}</th>
       <th class="num sortable" onclick="sortCat('${tblId}','avgER','${col}','${dir}')">${t('er_col')} ${arrow('avgER')}</th>
       <th style="width:90px">${t('bar_col')}</th>
     </tr></thead>
@@ -724,9 +766,10 @@ function buildCategoryTable(stats, tblId, totalPosts, platKey, posts){
           <td style="font-weight:500">${hasTags?`<span class="subtag-toggle" id="icon-${expandId}">▶</span> `:' '}${c.name}</td>
           <td class="num">${c.count}</td>
           <td class="num">${totalPosts>0?(c.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
+          <td class="num">${c.totalReach>0?c.totalReach.toLocaleString():'-'}</td>
           <td class="num">${c.avgER.toFixed(2)}%</td>
           <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill" style="width:${(c.avgER/maxER*100).toFixed(1)}%"></div></div></div></td>
-        </tr>${hasTags?`<tr id="${expandId}" class="subtag-group hidden-subtag"><td colspan="6" style="padding:0"><table style="width:100%;border-collapse:collapse">${tagRowsFor(c.id)}</table></td></tr>`:''}`;
+        </tr>${hasTags?`<tr id="${expandId}" class="subtag-group hidden-subtag"><td colspan="7" style="padding:0"><table id="stbl-${expandId}" style="width:100%;border-collapse:collapse">${buildSubtagRows(tblId,c.id,platKey,posts,totalPosts)}</table></td></tr>`:''}`;
       }).join('')}
     </tbody>
   </table>`;
@@ -741,6 +784,68 @@ function sortCat(tblId, col, prevCol, prevDir){
   const stats=getCategoryStats(platKey,posts).filter(d=>d.count>0);
   wrap.innerHTML=buildCategoryTable(stats,tblId,posts.length,platKey,posts);
   wrap.dataset.platkey=platKey;
+}
+
+function sortSubtag(tblId, catId, col){
+  const sk = tblId+'::'+catId;
+  const prev = subtagSort[sk]||{col:'count',dir:'desc'};
+  const dir = (col===prev.col && prev.dir==='desc')?'asc':'desc';
+  subtagSort[sk]={col,dir};
+  const stbl = document.getElementById('stbl-subtag-'+tblId+'-'+catId);
+  if(!stbl) return;
+  const wrap = document.getElementById('ctbl-'+tblId);
+  const platKey = wrap ? wrap.dataset.platkey : null;
+  if(!platKey) return;
+  const posts = filterByDate(platPostsMap[platKey]);
+  const total = posts.length;
+  stbl.innerHTML = buildSubtagRows(tblId, catId, platKey, posts, total);
+}
+
+function toggleSubtagPosts(postListId, tblId, catId, tag, platKey){
+  const row = document.getElementById(postListId);
+  const icon = document.getElementById('icon-'+postListId);
+  if(!row) return;
+  const isHidden = row.classList.contains('hidden-subtag');
+  if(isHidden){
+    row.classList.remove('hidden-subtag');
+    if(icon) icon.textContent='▼';
+    // Build post list if not yet populated
+    const container = document.getElementById('spl-'+postListId);
+    if(container && container.innerHTML===''){
+      const posts = filterByDate(platPostsMap[platKey])||[];
+      const catIdNum = parseInt(catId);
+      const matched = posts.filter((p,i)=>{
+        const k = postKey(platKey,p,i);
+        const savedTag = (tagMap[platKey]||{})[k];
+        const savedCat = (categoryMap[platKey]||{})[k];
+        return savedTag===tag && savedCat && savedCat.id===catIdNum;
+      });
+      if(!matched.length){
+        container.innerHTML='<div style="padding:10px 24px;font-size:12px;color:var(--ink-muted)">—</div>';
+      } else {
+        container.innerHTML = `<div class="subtag-post-items">${matched.map((p,i)=>{
+          const dateStr = p.date ? p.date.slice(0,10) : '';
+          const preview = (p.text||'').replace(/\n/g,' ').slice(0,80);
+          const dots = (p.text||'').length>80?'…':'';
+          const linkHtml = p.link ? `<a href="${p.link}" target="_blank" rel="noopener" class="subtag-post-link">↗</a>` : '';
+          return `<div class="subtag-post-item">
+            <span class="subtag-post-num">${i+1}</span>
+            <div class="subtag-post-body">
+              <div class="subtag-post-campaign">${p.campaign||''}${linkHtml}</div>
+              <div class="subtag-post-preview">${preview}${dots}</div>
+            </div>
+            <div class="subtag-post-meta">
+              <span>${dateStr}</span>
+              <span>ER ${p.er?p.er.toFixed(2)+'%':'-'}</span>
+            </div>
+          </div>`;
+        }).join('')}</div>`;
+      }
+    }
+  } else {
+    row.classList.add('hidden-subtag');
+    if(icon) icon.textContent='▶';
+  }
 }
 
 // ── Post classify list ────────────────────────────────────────
