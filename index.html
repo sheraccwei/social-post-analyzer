@@ -684,7 +684,11 @@ function getAccountER(posts){
 function getCategoryStats(platKey, posts){
   const map={};
   CATEGORIES.forEach(c=>{map[c.id]={id:c.id,name:c.name,count:0,totalEng:0,totalReach:0};});
-  posts.forEach((p,i)=>{
+  // Use original unfiltered array + dateFiltered Set so postKey indices match saved categoryMap keys
+  const origPosts = platPostsMap[platKey]||posts;
+  const dateFiltered = new Set(posts.map(p=>p.link||p.date||''));
+  origPosts.forEach((p,i)=>{
+    if(!(dateFiltered.has(p.link||p.date||''))) return;
     const k=postKey(platKey,p,i);
     const cd=(categoryMap[platKey]||{})[k];
     const id=cd?cd.id:null;
@@ -718,8 +722,12 @@ function buildSubtagTable(stblEl, tblId, catId, platKey, posts, totalPosts){
   let ts = getTagStats(platKey, posts, catId);
 
   // Add untagged posts as a virtual subtag
+  // Use original unfiltered array + dateFiltered Set so postKey indices match saved keys
   const catIdNum = parseInt(catId);
-  const untaggedPosts = posts.filter((p,i)=>{
+  const origPostsForUntag = platPostsMap[platKey]||posts;
+  const dateFilteredForUntag = new Set(posts.map(p=>p.link||p.date||''));
+  const untaggedPosts = origPostsForUntag.filter((p,i)=>{
+    if(!(dateFilteredForUntag.has(p.link||p.date||''))) return false;
     const k = postKey(platKey,p,i);
     const savedCat = (categoryMap[platKey]||{})[k];
     const savedTag = (tagMap[platKey]||{})[k];
@@ -808,16 +816,20 @@ function buildSubtagTable(stblEl, tblId, catId, platKey, posts, totalPosts){
         const container = document.getElementById('spl-'+postListId);
         if(container && !container.dataset.built){
           container.dataset.built='1';
-          const allPosts = filterByDate(platPostsMap[platKey])||[];
+          // Must use original (unfiltered) array with original indices so postKey matches categoryMap keys
+          const origPosts = platPostsMap[platKey]||[];
+          const dateFiltered = new Set(posts.map(p=>p.link||p.date||''));
           let matched;
           if(s.tag==='（未標記）'){
-            matched = allPosts.filter((p,i)=>{
+            matched = origPosts.filter((p,i)=>{
+              if(!(dateFiltered.has(p.link||p.date||''))) return false;
               const k=postKey(platKey,p,i);
               const savedCat=(categoryMap[platKey]||{})[k];
               return savedCat && savedCat.id===catIdNum && !(tagMap[platKey]||{})[k];
             });
           } else {
-            matched = allPosts.filter((p,i)=>{
+            matched = origPosts.filter((p,i)=>{
+              if(!(dateFiltered.has(p.link||p.date||''))) return false;
               const k=postKey(platKey,p,i);
               return (tagMap[platKey]||{})[k]===s.tag && (categoryMap[platKey]||{})[k]&&(categoryMap[platKey]||{})[k].id===catIdNum;
             });
@@ -910,7 +922,11 @@ function buildCategoryTable(stats, tblId, totalPosts, platKey, posts){
         // hasTags: true if there are tagged subtags OR untagged posts in this category
         const catIdNum = c.id;
         const hasTaggedSubs = platKey && posts && getTagStats(platKey, posts, catIdNum).length > 0;
-        const hasUntagged = platKey && posts && posts.some((p,pi)=>{
+        // Use original unfiltered array + dateFiltered Set so postKey indices match saved keys
+        const origPostsForHasTag = platKey ? (platPostsMap[platKey]||posts) : posts;
+        const dateFilteredForHasTag = platKey && posts ? new Set(posts.map(p=>p.link||p.date||'')) : new Set();
+        const hasUntagged = platKey && posts && origPostsForHasTag.some((p,pi)=>{
+          if(!(dateFilteredForHasTag.has(p.link||p.date||''))) return false;
           const k=postKey(platKey,p,pi);
           const sc=(categoryMap[platKey]||{})[k];
           return sc && sc.id===catIdNum && !(tagMap[platKey]||{})[k];
@@ -954,8 +970,17 @@ function renderClassifyRows(platKey, posts){
   const saved = categoryMap[platKey]||{};
   const {col='date', dir='desc', unclassifiedFirst=false} = classifySort[platKey]||{};
 
-  // Attach original index so postKey stays correct
-  let indexed = posts.map((p,i)=>({p, origIdx:i}));
+  // Attach ORIGINAL (unfiltered) index so postKey stays correct even after date filtering
+  const origPostsCR = platPostsMap[platKey]||[];
+  const dateFilteredCR = new Set(posts.map(p=>p.link||p.date||''));
+  let indexed;
+  if(origPostsCR.length > 0){
+    indexed = origPostsCR
+      .map((p,i)=>({p, origIdx:i}))
+      .filter(({p})=>dateFilteredCR.has(p.link||p.date||''));
+  } else {
+    indexed = posts.map((p,i)=>({p, origIdx:i}));
+  }
 
   if(unclassifiedFirst){
     const unset = indexed.filter(({p,origIdx})=>!saved[postKey(platKey,p,origIdx)]);
@@ -1129,7 +1154,11 @@ function getTagStats(platKey, posts, catId) {
   // Returns [{tag, count, totalEng, totalReach, avgER}] for a given category
   const catIdNum = parseInt(catId); // normalize — catId may arrive as string from dataset
   const tmap = {};
-  posts.forEach((p,i) => {
+  // Use original unfiltered array + dateFiltered Set so postKey indices match saved tagMap/categoryMap keys
+  const origPosts = platPostsMap[platKey]||posts;
+  const dateFiltered = new Set(posts.map(p=>p.link||p.date||''));
+  origPosts.forEach((p,i) => {
+    if(!(dateFiltered.has(p.link||p.date||''))) return;
     const k  = postKey(platKey, p, i);
     const cd = (categoryMap[platKey]||{})[k];
     if (!cd || cd.id !== catIdNum) return;
