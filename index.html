@@ -70,8 +70,16 @@
   .result-block-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-muted); }
 
   /* Stats */
-  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin-bottom: 28px; background: var(--border); border: 1px solid var(--border); }
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin-bottom: 12px; background: var(--border); border: 1px solid var(--border); }
   .stat-card { background: var(--surface); padding: 18px 20px; }
+  .sponsored-section { margin-bottom: 20px; }
+  .sponsored-grid { border: 1px solid var(--border); background: var(--border); display: flex; flex-direction: column; gap: 1px; }
+  .sponsored-row { background: var(--surface); display: grid; grid-template-columns: 120px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 16px; }
+  .sponsored-all { background: var(--surface-alt, #f7f7f7); }
+  .sponsored-label { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .sponsored-meta { font-size: 11px; color: var(--ink-muted); }
+  .sponsored-er { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--plat-color); min-width: 70px; text-align: right; }
+  .sponsored-warn { font-size: 9px; color: #e07020; white-space: nowrap; }
   .stat-name { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px; }
   .stat-value { font-size: 26px; font-weight: 700; font-family: var(--mono); color: var(--ink); line-height: 1; }
   .stat-value.plat-val { color: var(--plat-color); }
@@ -353,8 +361,10 @@ const I18N = {
     select_placeholder: '— select —',
     processing: 'Processing...',
     upload_min: 'Please upload at least one CSV file.',
-    stat_posts: 'Total Posts', stat_er: 'Account ER%', stat_classified: 'Classified',
+    stat_posts: 'Total Posts', stat_er: 'Account ER%', stat_er_fb: 'ER% (excl. clicks)', stat_classified: 'Classified',
     stat_reach: 'Total Reach', stat_top: 'Top Post ER%',
+    sponsored_section: 'ER% by Sponsored', sponsored_yes: '💰 Sponsored', sponsored_no: '🌱 Organic', sponsored_all: 'All',
+    sponsored_posts: n=>`${n} posts`, sponsored_er: 'Pool ER%', sponsored_reach: 'Reach',
     mom_full: 'MOM (current month)', ytm_full: 'YTM (year-to-date)',
     prompt_q: 'Q. Looking at the top 3 posts, what drove their strong engagement?',
     step3: 'Step 03 — Date Range Filter', df_from: 'From', df_to: 'To', df_reset: '↺ Reset',
@@ -388,8 +398,10 @@ const I18N = {
     select_placeholder: '— 選擇分類 —',
     processing: '處理中...',
     upload_min: '請至少上傳一個 CSV 檔案。',
-    stat_posts: '總貼文數', stat_er: 'Account ER%', stat_classified: '已分類',
+    stat_posts: '總貼文數', stat_er: 'Account ER%', stat_er_fb: '互動率（不含點擊）', stat_classified: '已分類',
     stat_reach: '總觸及', stat_top: '最高貼文 ER%',
+    sponsored_section: '投放 vs 有機互動率', sponsored_yes: '💰 有投放', sponsored_no: '🌱 有機', sponsored_all: '全部',
+    sponsored_posts: n=>`${n} 篇`, sponsored_er: 'Pool ER%', sponsored_reach: '觸及',
     mom_full: 'MOM（當月）', ytm_full: 'YTM（年初至今）',
     prompt_q: 'Q. Looking at the top 3 posts, what drove their strong engagement?',
     step3: 'Step 03 — 日期篩選', df_from: '起始日', df_to: '結束日', df_reset: '↺ 重置',
@@ -423,8 +435,10 @@ const I18N = {
     select_placeholder: '— 선택 —',
     processing: '처리 중...',
     upload_min: 'CSV 파일을 하나 이상 업로드하세요.',
-    stat_posts: '총 게시물', stat_er: 'Account ER%', stat_classified: '분류됨',
+    stat_posts: '총 게시물', stat_er: 'Account ER%', stat_er_fb: 'ER% (클릭 제외)', stat_classified: '분류됨',
     stat_reach: '총 도달', stat_top: '최고 게시물 ER%',
+    sponsored_section: '유료 vs 유기적 ER%', sponsored_yes: '💰 유료', sponsored_no: '🌱 유기적', sponsored_all: '전체',
+    sponsored_posts: n=>`${n}개`, sponsored_er: 'Pool ER%', sponsored_reach: '도달',
     mom_full: 'MOM (이번 달)', ytm_full: 'YTM (연간 누계)',
     prompt_q: 'Q. Looking at the top 3 posts, what drove their strong engagement?',
     step3: 'Step 03 — 날짜 범위 필터', df_from: '시작일', df_to: '종료일', df_reset: '↺ 초기화',
@@ -660,13 +674,35 @@ function parseCSV(text) {
 // ── Data ─────────────────────────────────────────────────────
 function processData(rows) {
   return rows.map(r=>{
-    const eng=parseInt((r['Threads Engagements + Clicks (SUM)']||r['Engagements + Clicks (SUM)']||r['Engagements']||'0').replace(/,/g,''))||0;
+    const accountType = (r['Account Type']||'').trim().toUpperCase();
+    const isFB = accountType === 'FBPAGE';
     const reach=parseInt((r['Threads Post Total Views (SUM)']||r['Post Reach (SUM)']||r['Reach']||'0').replace(/,/g,''))||0;
     const erRaw=r['Threads Engagements Rate in %']||r['Engagement Rate in %']||r['Engagement Rate (%)']||r['ER%']||'';
-    let er=erRaw?(parseFloat(erRaw.replace('%',''))||0):0;
+    const erPct = erRaw ? (parseFloat(erRaw.replace('%',''))||0) : 0;
+
+    let eng, engFallback=false;
+    if(isFB){
+      // FB: derive eng from ER% × Reach (excludes clicks), fallback to Engagements+Clicks if ER% missing
+      if(erPct > 0 && reach > 0){
+        eng = Math.round(erPct / 100 * reach);
+      } else {
+        eng = parseInt((r['Engagements + Clicks (SUM)']||r['Engagements']||'0').replace(/,/g,''))||0;
+        engFallback = true;
+      }
+    } else {
+      eng=parseInt((r['Threads Engagements + Clicks (SUM)']||r['Engagements + Clicks (SUM)']||r['Engagements']||'0').replace(/,/g,''))||0;
+    }
+
+    let er = erPct;
     if(er===0&&reach>0) er=(eng/reach)*100;
+
+    // Is Sponsored — Sprinklr exports as "True"/"False" string
+    const sponsoredRaw = (r['Is Sponsored']||r['Sponsored']||'').trim().toLowerCase();
+    const isSponsored = sponsoredRaw === 'true' || sponsoredRaw === '1' || sponsoredRaw === 'yes';
+
     return {
       er, eng, reach,
+      isFB, engFallback, isSponsored,
       campaign:(r['Campaign Name']||r['Campaign']||'Unknown').trim(),
       text:r['Outbound Post']||r['Post Text']||'',
       link:r['Permalink']||'',
@@ -678,6 +714,53 @@ function getAccountER(posts){
   const te=posts.reduce((s,p)=>s+p.eng,0);
   const tr=posts.reduce((s,p)=>s+p.reach,0);
   return tr>0?(te/tr*100):0;
+}
+
+// ── Sponsored breakdown (FB only) ─────────────────────────────
+function renderSponsoredBreakdown(posts){
+  // Only render if posts have isSponsored data (FB CSV contains "Is Sponsored")
+  const hasSponsoredData = posts.some(p => p.isSponsored !== undefined && p.isSponsored === true)
+    || posts.some(p => p.isSponsored === false);
+  if(!hasSponsoredData) return '';
+
+  const groups = [
+    { key:'sponsored', label: t('sponsored_yes'), posts: posts.filter(p=>p.isSponsored===true) },
+    { key:'organic',   label: t('sponsored_no'),  posts: posts.filter(p=>p.isSponsored===false) },
+  ].filter(g=>g.posts.length>0);
+
+  if(!groups.length) return '';
+
+  const allEng = posts.reduce((s,p)=>s+p.eng,0);
+  const allReach = posts.reduce((s,p)=>s+p.reach,0);
+  const allER = allReach>0?(allEng/allReach*100):0;
+
+  const rows = groups.map(g=>{
+    const te = g.posts.reduce((s,p)=>s+p.eng,0);
+    const tr = g.posts.reduce((s,p)=>s+p.reach,0);
+    const er = tr>0?(te/tr*100):0;
+    const fallbackCount = g.posts.filter(p=>p.engFallback).length;
+    return `<div class="sponsored-row">
+      <div class="sponsored-label">${g.label}</div>
+      <div class="sponsored-meta">${t('sponsored_posts')(g.posts.length)} · ${t('sponsored_reach')} ${tr.toLocaleString()}</div>
+      <div class="sponsored-er">${er.toFixed(2)}%</div>
+      ${fallbackCount>0?`<div class="sponsored-warn" title="${fallbackCount} 篇缺少 Engagement Rate in %，改用 Engagements+Clicks">⚠ ${fallbackCount} eng+clicks</div>`:''}
+    </div>`;
+  }).join('');
+
+  const fallbackTotal = posts.filter(p=>p.engFallback).length;
+
+  return `<div class="sponsored-section">
+    <div class="section-label" style="margin-top:16px;margin-bottom:8px">${t('sponsored_section')}</div>
+    <div class="sponsored-grid">
+      <div class="sponsored-row sponsored-all">
+        <div class="sponsored-label">📊 ${t('sponsored_all')}</div>
+        <div class="sponsored-meta">${t('sponsored_posts')(posts.length)} · ${t('sponsored_reach')} ${allReach.toLocaleString()}</div>
+        <div class="sponsored-er">${allER.toFixed(2)}%</div>
+        ${fallbackTotal>0?`<div class="sponsored-warn">⚠ ${fallbackTotal} eng+clicks</div>`:''}
+      </div>
+      ${rows}
+    </div>
+  </div>`;
 }
 
 // ── Category stats ────────────────────────────────────────────
@@ -1029,6 +1112,8 @@ function renderClassifyRows(platKey, posts){
             ${p.reach>0?`<div>Reach ${p.reach.toLocaleString()}</div>`:''}
             ${p.eng>0?`<div>Eng ${p.eng.toLocaleString()}</div>`:''}
             ${p.er>0?`<div>ER ${p.er.toFixed(2)}%</div>`:''}
+            ${p.engFallback?`<div style="color:#e07020;font-size:9px" title="Engagement Rate in % 欄位為空，改用 Engagements+Clicks">⚠ eng+clicks</div>`:''}
+            ${p.isSponsored!==undefined?(p.isSponsored?`<div style="color:#888;font-size:9px">💰 投放</div>`:`<div style="color:#888;font-size:9px">有機</div>`):''}
           </div>
         </div>
       </div>
@@ -1335,11 +1420,12 @@ function runAnalysis(){
 
       <div class="stats-row">
         <div class="stat-card"><div class="stat-name">${t('stat_posts')}</div><div class="stat-value">${posts.length}</div></div>
-        <div class="stat-card"><div class="stat-name">${t('stat_er')}</div><div class="stat-value plat-val">${pct(accountER)}</div></div>
+        <div class="stat-card"><div class="stat-name">${plat.key==='fb'?t('stat_er_fb'):t('stat_er')}</div><div class="stat-value plat-val">${pct(accountER)}</div></div>
         <div class="stat-card"><div class="stat-name">${t('stat_classified')}</div><div class="stat-value" id="statcard-classified-${plat.key}">${classified}<span style="font-size:14px;color:var(--ink-muted)"> / ${posts.length}</span></div></div>
         <div class="stat-card"><div class="stat-name">${t('stat_reach')}</div><div class="stat-value" style="font-size:20px">${posts.reduce((s,p)=>s+p.reach,0).toLocaleString()}</div></div>
         <div class="stat-card"><div class="stat-name">${t('stat_top')}</div><div class="stat-value green">${pct(Math.max(...posts.map(p=>p.er)))}</div></div>
       </div>
+      ${plat.key==='fb' ? renderSponsoredBreakdown(posts) : ''}
 
       <div class="section-label" style="margin-top:24px;">${t('cat_section')}</div>
       ${renderCategoryTable(plat.key, posts, tblId)}
