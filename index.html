@@ -85,8 +85,9 @@
   .data-table tr:hover td { background: var(--surface2); }
   .data-table .rank { font-family: var(--mono); color: var(--ink-muted); width: 32px; font-size: 12px; }
   .data-table .num { font-family: var(--mono); text-align: right; }
-  .data-table th.sortable { cursor: pointer; user-select: none; }
+  .data-table th.sortable, .data-table td.sortable { cursor: pointer; user-select: none; }
   .data-table th.sortable:hover { color: var(--ink); }
+  .data-table td.sortable:hover { color: var(--ink); }
   .sort-arrow { margin-left: 4px; font-size: 10px; color: var(--plat-color); }
   .sort-arrow.inactive { color: var(--border-strong); }
   .er-bar-wrap { display: flex; align-items: center; }
@@ -175,7 +176,8 @@
   .subtag-header-row td { background: var(--surface-alt, #f0f0f0) !important; border-bottom: 1px solid var(--border); }
   .subtag-fill { background: var(--accent) !important; opacity: 0.5; }
   .subtag-toggle { font-size: 9px; color: var(--ink-muted); margin-right: 2px; display:inline-block; transition: transform 0.15s; }
-  .has-subtags:hover td { background: rgba(117,145,168,0.06); }
+  .expand-btn { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; font-size:9px; color:var(--ink-muted); background:transparent; border:1px solid var(--border); cursor:pointer; padding:0; margin-right:4px; line-height:1; transition: background 0.12s, color 0.12s; vertical-align:middle; flex-shrink:0; }
+  .expand-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
   /* Subtag post list */
   .subtag-post-list { background: var(--surface); border-top: 1px solid var(--border); }
   .subtag-post-items { padding: 4px 0; }
@@ -696,45 +698,179 @@ function renderCategoryTable(platKey, posts, tblId){
   </div>`;
 }
 
-function buildSubtagRows(tblId, catId, platKey, posts, totalPosts){
-  if (!platKey || !posts) return '';
+function buildSubtagTable(stblEl, tblId, catId, platKey, posts, totalPosts){
+  // Build the subtag inner table using real DOM (no innerHTML) to avoid event bubbling issues
+  stblEl.innerHTML = '';
   const sk = tblId+'::'+catId;
   const {col:sc, dir:sd} = subtagSort[sk] || {col:'count', dir:'desc'};
   let ts = getTagStats(platKey, posts, catId);
-  if (!ts.length) return '';
+
+  // Add untagged posts as a virtual subtag
+  const catIdNum = parseInt(catId);
+  const untaggedPosts = posts.filter((p,i)=>{
+    const k = postKey(platKey,p,i);
+    const savedCat = (categoryMap[platKey]||{})[k];
+    const savedTag = (tagMap[platKey]||{})[k];
+    return savedCat && savedCat.id===catIdNum && !savedTag;
+  });
+  if(untaggedPosts.length > 0){
+    const totalEng = untaggedPosts.reduce((s,p)=>s+p.eng,0);
+    const totalReach = untaggedPosts.reduce((s,p)=>s+p.reach,0);
+    ts = [...ts, {
+      tag:'（未標記）',
+      count: untaggedPosts.length,
+      totalEng, totalReach,
+      avgER: totalReach>0?(totalEng/totalReach*100):0
+    }];
+  }
+
+  if(!ts.length) return false;
   ts = [...ts].sort((a,b)=>{
     const av=a[sc]??0, bv=b[sc]??0;
     return sd==='desc'?bv-av:av-bv;
   });
   const maxT = Math.max(...ts.map(s=>s.avgER), 0.001);
-  const sarrow=c=>{
+
+  // Header row — bind sort with addEventListener, stopPropagation guaranteed
+  const bg = 'var(--surface-alt,#f0f0f0)';
+  const hdrTr = document.createElement('tr');
+  hdrTr.className = 'subtag-header-row';
+  hdrTr.addEventListener('click', e=>e.stopPropagation());
+  const sarrowHtml=(c)=>{
     if(sc!==c) return '<span class="sort-arrow inactive" style="font-size:10px">↕</span>';
     return `<span class="sort-arrow" style="font-size:10px">${sd==='desc'?'↓':'↑'}</span>`;
   };
-  const hdr = `<tr class="subtag-header-row">
-    <td colspan="2" style="padding:4px 8px 4px 24px;font-size:11px;color:var(--ink-muted);font-weight:600;background:var(--surface-alt,#f0f0f0)"></td>
-    <td class="num sortable" style="font-size:11px;background:var(--surface-alt,#f0f0f0)" onclick="sortSubtag('${tblId}','${catId}','count')">${t('posts_col')} ${sarrow('count')}</td>
-    <td class="num" style="font-size:11px;background:var(--surface-alt,#f0f0f0)">${t('pct_col')}</td>
-    <td class="num sortable" style="font-size:11px;background:var(--surface-alt,#f0f0f0)" onclick="sortSubtag('${tblId}','${catId}','totalReach')">Reach ${sarrow('totalReach')}</td>
-    <td class="num sortable" style="font-size:11px;background:var(--surface-alt,#f0f0f0)" onclick="sortSubtag('${tblId}','${catId}','avgER')">${t('er_col')} ${sarrow('avgER')}</td>
-    <td style="background:var(--surface-alt,#f0f0f0);width:90px"></td>
-  </tr>`;
-  const rows = ts.map(s=>{
-    const postListId = `subpost-${tblId}-${catId}-${s.tag.replace(/[^a-z0-9]/gi,'_')}`;
-    return `<tr class="subtag-row" onclick="toggleSubtagPosts('${postListId}','${tblId}','${catId}','${s.tag.replace(/'/g,"\\'")}','${platKey}')" style="cursor:pointer">
+  hdrTr.innerHTML = `
+    <td colspan="2" style="padding:4px 8px 4px 20px;font-size:11px;color:var(--ink-muted);font-weight:600;background:${bg}"></td>
+    <td class="num subtag-sort-th" data-col="count" style="font-size:11px;padding:6px 8px;background:${bg}">${t('posts_col')} ${sarrowHtml('count')}</td>
+    <td class="num" style="font-size:11px;padding:6px 8px;background:${bg}">${t('pct_col')}</td>
+    <td class="num subtag-sort-th" data-col="totalReach" style="font-size:11px;padding:6px 8px;background:${bg}">Reach ${sarrowHtml('totalReach')}</td>
+    <td class="num subtag-sort-th" data-col="avgER" style="font-size:11px;padding:6px 8px;background:${bg}">${t('er_col')} ${sarrowHtml('avgER')}</td>
+    <td style="background:${bg};width:90px"></td>`;
+  hdrTr.querySelectorAll('.subtag-sort-th').forEach(td=>{
+    td.style.cursor='pointer';
+    td.style.userSelect='none';
+    td.addEventListener('click', e=>{
+      e.stopPropagation();
+      const col = td.dataset.col;
+      const prev = subtagSort[sk]||{col:'count',dir:'desc'};
+      const dir = (col===prev.col && prev.dir==='desc')?'asc':'desc';
+      subtagSort[sk]={col,dir};
+      buildSubtagTable(stblEl, tblId, catId, platKey, posts, totalPosts);
+    });
+  });
+  stblEl.appendChild(hdrTr);
+
+  // Data rows
+  ts.forEach(s=>{
+    const safeTag = s.tag.replace(/[^a-z0-9]/gi,'_');
+    const postListId = `subpost-${tblId}-${catId}-${safeTag}`;
+
+    const dataTr = document.createElement('tr');
+    dataTr.className = 'subtag-row';
+    const barW = (s.avgER/maxT*100).toFixed(1);
+    dataTr.innerHTML = `
       <td></td>
-      <td style="padding-left:24px;color:var(--ink-muted);font-size:12px"><span class="subtag-toggle" id="icon-${postListId}">▶</span> ${s.tag}</td>
+      <td style="padding-left:16px;color:var(--ink-muted);font-size:12px">
+        <button class="expand-btn" id="icon-${postListId}">▶</button>
+        ${s.tag}
+      </td>
       <td class="num" style="font-size:12px">${s.count}</td>
       <td class="num" style="font-size:12px">${totalPosts>0?(s.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
       <td class="num" style="font-size:12px">${s.totalReach>0?s.totalReach.toLocaleString():'-'}</td>
       <td class="num" style="font-size:12px">${s.avgER.toFixed(2)}%</td>
-      <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill subtag-fill" style="width:${(s.avgER/maxT*100).toFixed(1)}%"></div></div></div></td>
-    </tr>
-    <tr id="${postListId}" class="hidden-subtag"><td colspan="7" style="padding:0">
-      <div class="subtag-post-list" id="spl-${postListId}"></div>
-    </td></tr>`;
-  }).join('');
-  return hdr + rows;
+      <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill subtag-fill" style="width:${barW}%"></div></div></div></td>`;
+
+    const expandBtn = dataTr.querySelector('.expand-btn');
+    const postTr = document.createElement('tr');
+    postTr.id = postListId;
+    postTr.className = 'hidden-subtag';
+    postTr.innerHTML = `<td colspan="7" style="padding:0"><div class="subtag-post-list" id="spl-${postListId}"></div></td>`;
+
+    expandBtn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const isHidden = postTr.classList.contains('hidden-subtag');
+      if(isHidden){
+        postTr.classList.remove('hidden-subtag');
+        expandBtn.textContent='▼';
+        const container = document.getElementById('spl-'+postListId);
+        if(container && !container.dataset.built){
+          container.dataset.built='1';
+          const allPosts = filterByDate(platPostsMap[platKey])||[];
+          let matched;
+          if(s.tag==='（未標記）'){
+            matched = allPosts.filter((p,i)=>{
+              const k=postKey(platKey,p,i);
+              const savedCat=(categoryMap[platKey]||{})[k];
+              return savedCat && savedCat.id===catIdNum && !(tagMap[platKey]||{})[k];
+            });
+          } else {
+            matched = allPosts.filter((p,i)=>{
+              const k=postKey(platKey,p,i);
+              return (tagMap[platKey]||{})[k]===s.tag && (categoryMap[platKey]||{})[k]&&(categoryMap[platKey]||{})[k].id===catIdNum;
+            });
+          }
+          if(!matched.length){
+            container.innerHTML='<div style="padding:10px 24px;font-size:12px;color:var(--ink-muted)">此細項目前沒有對應貼文</div>';
+          } else {
+            container.innerHTML = `<div class="subtag-post-items">${matched.map((p,i)=>{
+              const dateStr=p.date?p.date.slice(0,10):'';
+              const preview=(p.text||'').replace(/</g,'&lt;').replace(/\n/g,' ').slice(0,80);
+              const dots=(p.text||'').length>80?'…':'';
+              const linkHtml=p.link?` <a href="${p.link}" target="_blank" rel="noopener" class="subtag-post-link">↗</a>`:'';
+              return `<div class="subtag-post-item">
+                <span class="subtag-post-num">${i+1}</span>
+                <div class="subtag-post-body">
+                  <div class="subtag-post-campaign">${(p.campaign||'').replace(/</g,'&lt;')}${linkHtml}</div>
+                  <div class="subtag-post-preview">${preview}${dots}</div>
+                </div>
+                <div class="subtag-post-meta">
+                  <span>${dateStr}</span>
+                  <span>ER ${p.er?p.er.toFixed(2)+'%':'-'}</span>
+                </div>
+              </div>`;
+            }).join('')}</div>`;
+          }
+        }
+      } else {
+        postTr.classList.add('hidden-subtag');
+        expandBtn.textContent='▶';
+      }
+    });
+
+    stblEl.appendChild(dataTr);
+    stblEl.appendChild(postTr);
+  });
+  return true;
+}
+
+// Legacy wrapper used during initial table build (returns HTML string for the outer table)
+function buildSubtagRows(tblId, catId, platKey, posts, totalPosts){
+  // Return placeholder — actual content is injected by initSubtagTable() after DOM insertion
+  return `<tr class="subtag-init-placeholder" data-tblid="${tblId}" data-catid="${catId}" data-platkey="${platKey}" data-total="${totalPosts}"><td colspan="7"></td></tr>`;
+}
+
+function initSubtagTable(stblEl){
+  const ph = stblEl.querySelector('.subtag-init-placeholder');
+  if(!ph) return;
+  const {tblid, catid, platkey, total} = ph.dataset;
+  const posts = filterByDate(platPostsMap[platkey])||[];
+  buildSubtagTable(stblEl, tblid, catid, platkey, posts, parseInt(total));
+}
+
+function sortSubtag(tblId, catId, col){
+  // kept for any residual inline onclick references — delegates to buildSubtagTable
+  const stbl = document.getElementById('stbl-subtag-'+tblId+'-'+catId);
+  if(!stbl) return;
+  const wrap = document.getElementById('ctbl-'+tblId);
+  const platKey = wrap ? wrap.dataset.platkey : null;
+  if(!platKey) return;
+  const sk = tblId+'::'+catId;
+  const prev = subtagSort[sk]||{col:'count',dir:'desc'};
+  const dir = (col===prev.col && prev.dir==='desc')?'asc':'desc';
+  subtagSort[sk]={col,dir};
+  const posts = filterByDate(platPostsMap[platKey]);
+  buildSubtagTable(stbl, tblId, catId, platKey, posts, posts.length);
 }
 
 function buildCategoryTable(stats, tblId, totalPosts, platKey, posts){
@@ -759,17 +895,25 @@ function buildCategoryTable(stats, tblId, totalPosts, platKey, posts){
     </tr></thead>
     <tbody>
       ${sorted.map((c,i)=>{
-        const hasTags = platKey && posts && getTagStats(platKey, posts, c.id).length > 0;
+        // hasTags: true if there are tagged subtags OR untagged posts in this category
+        const catIdNum = c.id;
+        const hasTaggedSubs = platKey && posts && getTagStats(platKey, posts, catIdNum).length > 0;
+        const hasUntagged = platKey && posts && posts.some((p,pi)=>{
+          const k=postKey(platKey,p,pi);
+          const sc=(categoryMap[platKey]||{})[k];
+          return sc && sc.id===catIdNum && !(tagMap[platKey]||{})[k];
+        });
+        const hasTags = hasTaggedSubs || hasUntagged;
         const expandId = `subtag-${tblId}-${c.id}`;
-        return `<tr class="cat-row${hasTags?' has-subtags':''}" onclick="${hasTags?`toggleSubtags('${expandId}')`:''}" style="${hasTags?'cursor:pointer':''}">
+        return `<tr class="cat-row">
           <td class="rank">${i+1}</td>
-          <td style="font-weight:500">${hasTags?`<span class="subtag-toggle" id="icon-${expandId}">▶</span> `:' '}${c.name}</td>
+          <td style="font-weight:500">${hasTags?`<button class="expand-btn" id="icon-${expandId}" onclick="toggleSubtags('${expandId}')">▶</button>`:' '}${c.name}</td>
           <td class="num">${c.count}</td>
           <td class="num">${totalPosts>0?(c.count/totalPosts*100).toFixed(1)+'%':'-'}</td>
           <td class="num">${c.totalReach>0?c.totalReach.toLocaleString():'-'}</td>
           <td class="num">${c.avgER.toFixed(2)}%</td>
           <td><div class="er-bar-wrap"><div class="er-bar-bg"><div class="er-bar-fill" style="width:${(c.avgER/maxER*100).toFixed(1)}%"></div></div></div></td>
-        </tr>${hasTags?`<tr id="${expandId}" class="subtag-group hidden-subtag"><td colspan="7" style="padding:0"><table id="stbl-${expandId}" style="width:100%;border-collapse:collapse">${buildSubtagRows(tblId,c.id,platKey,posts,totalPosts)}</table></td></tr>`:''}`;
+        </tr>${hasTags?`<tr id="${expandId}" class="subtag-group hidden-subtag"><td colspan="7" style="padding:0"><table id="stbl-${expandId}" data-tblid="${tblId}" data-catid="${c.id}" data-platkey="${platKey}" data-total="${totalPosts}" style="width:100%;border-collapse:collapse"></table></td></tr>`:''}`;
       }).join('')}
     </tbody>
   </table>`;
@@ -786,67 +930,9 @@ function sortCat(tblId, col, prevCol, prevDir){
   wrap.dataset.platkey=platKey;
 }
 
-function sortSubtag(tblId, catId, col){
-  const sk = tblId+'::'+catId;
-  const prev = subtagSort[sk]||{col:'count',dir:'desc'};
-  const dir = (col===prev.col && prev.dir==='desc')?'asc':'desc';
-  subtagSort[sk]={col,dir};
-  const stbl = document.getElementById('stbl-subtag-'+tblId+'-'+catId);
-  if(!stbl) return;
-  const wrap = document.getElementById('ctbl-'+tblId);
-  const platKey = wrap ? wrap.dataset.platkey : null;
-  if(!platKey) return;
-  const posts = filterByDate(platPostsMap[platKey]);
-  const total = posts.length;
-  stbl.innerHTML = buildSubtagRows(tblId, catId, platKey, posts, total);
-}
+// (duplicate sortSubtag removed — see the real implementation above)
 
-function toggleSubtagPosts(postListId, tblId, catId, tag, platKey){
-  const row = document.getElementById(postListId);
-  const icon = document.getElementById('icon-'+postListId);
-  if(!row) return;
-  const isHidden = row.classList.contains('hidden-subtag');
-  if(isHidden){
-    row.classList.remove('hidden-subtag');
-    if(icon) icon.textContent='▼';
-    // Build post list if not yet populated
-    const container = document.getElementById('spl-'+postListId);
-    if(container && container.innerHTML===''){
-      const posts = filterByDate(platPostsMap[platKey])||[];
-      const catIdNum = parseInt(catId);
-      const matched = posts.filter((p,i)=>{
-        const k = postKey(platKey,p,i);
-        const savedTag = (tagMap[platKey]||{})[k];
-        const savedCat = (categoryMap[platKey]||{})[k];
-        return savedTag===tag && savedCat && savedCat.id===catIdNum;
-      });
-      if(!matched.length){
-        container.innerHTML='<div style="padding:10px 24px;font-size:12px;color:var(--ink-muted)">—</div>';
-      } else {
-        container.innerHTML = `<div class="subtag-post-items">${matched.map((p,i)=>{
-          const dateStr = p.date ? p.date.slice(0,10) : '';
-          const preview = (p.text||'').replace(/\n/g,' ').slice(0,80);
-          const dots = (p.text||'').length>80?'…':'';
-          const linkHtml = p.link ? `<a href="${p.link}" target="_blank" rel="noopener" class="subtag-post-link">↗</a>` : '';
-          return `<div class="subtag-post-item">
-            <span class="subtag-post-num">${i+1}</span>
-            <div class="subtag-post-body">
-              <div class="subtag-post-campaign">${p.campaign||''}${linkHtml}</div>
-              <div class="subtag-post-preview">${preview}${dots}</div>
-            </div>
-            <div class="subtag-post-meta">
-              <span>${dateStr}</span>
-              <span>ER ${p.er?p.er.toFixed(2)+'%':'-'}</span>
-            </div>
-          </div>`;
-        }).join('')}</div>`;
-      }
-    }
-  } else {
-    row.classList.add('hidden-subtag');
-    if(icon) icon.textContent='▶';
-  }
-}
+// toggleSubtagPosts is now handled inline by addEventListener in buildSubtagTable()
 
 // ── Post classify list ────────────────────────────────────────
 function renderClassifyList(platKey, posts){
@@ -935,12 +1021,14 @@ function buildDatalistHTML() {
 
 function getTagStats(platKey, posts, catId) {
   // Returns [{tag, count, totalEng, totalReach, avgER}] for a given category
+  const catIdNum = parseInt(catId); // normalize — catId may arrive as string from dataset
   const tmap = {};
   posts.forEach((p,i) => {
     const k  = postKey(platKey, p, i);
     const cd = (categoryMap[platKey]||{})[k];
-    if (!cd || cd.id !== catId) return;
-    const tag = (tagMap[platKey]||{})[k] || '—';
+    if (!cd || cd.id !== catIdNum) return;
+    const tag = (tagMap[platKey]||{})[k];
+    if (!tag) return; // skip untagged — handled separately as（未標記）group
     if (!tmap[tag]) tmap[tag] = {tag, count:0, totalEng:0, totalReach:0};
     tmap[tag].count++;
     tmap[tag].totalEng   += p.eng;
@@ -987,7 +1075,18 @@ function toggleSubtags(id){
   const icon=document.getElementById('icon-'+id);
   if(!row) return;
   row.classList.toggle('hidden-subtag');
-  if(icon) icon.textContent=row.classList.contains('hidden-subtag')?'▶':'▼';
+  const isNowVisible = !row.classList.contains('hidden-subtag');
+  if(icon) icon.textContent=isNowVisible?'▼':'▶';
+  // Lazy-init the subtag table on first open
+  if(isNowVisible){
+    const stbl=document.getElementById('stbl-'+id);
+    if(stbl && !stbl.dataset.built){
+      stbl.dataset.built='1';
+      const {tblid,catid,platkey,total}=stbl.dataset;
+      const posts=filterByDate(platPostsMap[platkey])||[];
+      buildSubtagTable(stbl, tblid, catid, platkey, posts, parseInt(total));
+    }
+  }
 }
 
 function toggleCollapse(id){
